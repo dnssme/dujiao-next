@@ -18,90 +18,69 @@
 
 ## 5 轮审查结果
 
-### 第 1 轮: Go 后端源码审查
+### 第 1 轮: 认证授权与 JWT 安全
 
-**审查文件**: `internal/router/`, `internal/service/`, `internal/http/handlers/`, `internal/payment/`, `internal/config/`, `internal/models/`, `internal/repository/`, `cmd/server/`
+**审查文件**: `cmd/server/main.go`、`internal/router/middleware.go`、`internal/service/auth_service.go`、`internal/service/user_auth_service.go`、`internal/authz/`、`internal/config/config.go`
 
 **发现并修复的问题:**
 
 | # | 严重程度 | 问题 | 状态 |
 |---|----------|------|------|
-| 1 | 高 | 游客订单查询接口缺少限流保护，可被暴力破解 | ✅ 已修复 — 添加 `guestQueryRule` 限流 (20次/5分钟，超限封禁10分钟) |
+| 1 | 高 | User JWT secret (`user_jwt.secret`) 未在启动时检测弱密钥，仅检测了 admin JWT | ✅ 已修复 — `cmd/server/main.go` 增加 `isWeakSecret(cfg.UserJWT.SecretKey)` 检查 |
 
 **确认安全的部分:**
-- ✅ JWT 认证：双密钥体系、Token 版本控制、弱密钥检测
-- ✅ RBAC 权限：Casbin 实现、超级管理员旁路
-- ✅ 密码处理：bcrypt 哈希（DefaultCost 10）、可配置密码策略
-- ✅ 数据库安全：GORM 参数化查询，无 SQL 拼接
-- ✅ HTTP 超时：Read 30s、Write 30s、Header 10s、Idle 120s
-- ✅ 文件上传：大小限制、扩展名白名单、MIME 检测、UUID 文件名
+- ✅ JWT 认证：HS256 算法锁定（防止算法替换攻击）、双密钥体系、Token 版本控制
+- ✅ 弱密钥检测：release 模式下致命退出，开发模式下警告
+- ✅ Token 失效机制：`TokenInvalidBefore` 支持密码修改后立即失效
+- ✅ RBAC 权限：Casbin 实现、超级管理员旁路、预定义角色体系
+- ✅ 密码处理：bcrypt 哈希（DefaultCost 10）、可配置密码策略、`crypto/rand` 生成
+- ✅ 登录限流：admin/user/telegram 登录均有 Redis 限流保护
 
-### 第 2 轮: Vue 前端源码审查
+### 第 2 轮: 支付与订单安全
 
-**审查文件**: `user/src/` 和 `admin/src/` 全部 `.vue`、`.ts` 文件
+**审查文件**: `internal/service/order_service.go`、`internal/service/payment_service*.go`、`internal/service/wallet_service.go`、`internal/service/coupon_service.go`、`internal/repository/coupon_repository.go`
 
-**发现的风险点（已评估）:**
+**发现并修复的问题:**
 
-| # | 严重程度 | 问题 | 评估 |
+| # | 严重程度 | 问题 | 状态 |
 |---|----------|------|------|
-| 1 | 中 | `v-html` 在 3 处使用（BlogDetail/ProductDetail/Legal） | 风险可控 — 内容均来自管理后台，非用户输入 |
-| 2 | 低 | JWT Token 存储在 localStorage | 行业通用做法，CSP 头缓解 XSS 风险 |
-| 3 | 低 | `customScripts.ts` 动态注入脚本 | 仅管理员可配置，用于统计代码 |
+| 1 | 高 | 优惠券使用次数限制存在竞态条件（TOCTOU），并发订单可超限使用优惠券 | ✅ 已修复 — `IncrementUsedCount()` 添加原子 WHERE 条件 `used_count + delta <= usage_limit` |
+
+**修复详情:**
+```sql
+-- 修复前（仅原子递增，无限制检查）
+UPDATE coupons SET used_count = used_count + 1 WHERE id = ?
+
+-- 修复后（原子递增 + 限制检查）
+UPDATE coupons SET used_count = used_count + 1 
+WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
+```
 
 **确认安全的部分:**
-- ✅ Axios 统一错误处理 + 401 自动登出
-- ✅ 路由守卫：`requiresUserAuth` / `userGuest` meta 保护
-- ✅ Admin RBAC：路由级别权限检查 + 通配符匹配
-- ✅ 无 DOM XSS（除上述 v-html，内容已评估）
+- ✅ 支付回调签名验证：全部 7 个支付商均实现签名校验
+- ✅ 金额计算：全程使用 `shopspring/decimal`，无浮点运算
+- ✅ 幂等处理：支付回调基于 reference 去重，状态机防止回退
+- ✅ 钱包操作：`FOR UPDATE` 行锁 + 事务，防止双花
+- ✅ 退款保护：reference 唯一性 + `RowsAffected == 0` 检测
+- ✅ 订单取消：事务内恢复库存、释放卡密、回退优惠券用量
 
-### 第 3 轮: 支付安全专项审查
+### 第 3 轮: 注入防护与输入验证
 
-**审查文件**: `internal/payment/` 全部支付提供商、`internal/http/handlers/public/payment_*.go`
+**审查文件**: `internal/repository/*.go`、`internal/http/handlers/`、`internal/service/upload_service.go`、`internal/router/middleware.go`
 
 **结果: 全部通过 ✅**
 
-| 支付方式 | 签名验证 | 验证函数 |
-|----------|----------|----------|
-| Alipay | ✅ RSA2 | `alipay.VerifyCallback()` + `VerifyCallbackOwnership()` |
-| WeChat Pay | ✅ 官方 SDK | `VerifyAndDecodeWebhook()` |
-| Stripe | ✅ HMAC-SHA256 | `VerifyAndParseWebhook()` |
-| PayPal | ✅ 官方 API | `HandlePaypalWebhook()` |
-| Epay | ✅ MD5/RSA | `epay.VerifyCallback()` |
-| BEpusdt | ✅ HMAC | `epusdt.VerifyCallback()` |
-| TokenPay | ✅ MD5 HMAC | `tokenpay.VerifyCallback()` |
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| SQL 注入 | ✅ 安全 | 全部使用 GORM 参数化查询，无 `Raw()` 或 `Exec()` |
+| 文件上传 | ✅ 安全 | 大小限制 + 扩展名白名单 + MIME 检测 + 图片尺寸验证 + UUID 文件名 |
+| XSS 防护 | ✅ 安全 | `html.EscapeString()` 用于手动表单字段 |
+| 输入验证 | ✅ 安全 | 邮箱 `mail.ParseAddress()`、电话正则、选项白名单 |
+| CORS | ✅ 可配置 | 默认 `*` 供开发使用，生产环境需配置具体域名 |
 
-> 注：Epay/BEpusdt/TokenPay 使用 MD5 是第三方支付网关的协议要求，非本程序选择。
-> 应用层已使用常量时间比较防止时序攻击。
+### 第 4 轮: Docker/部署安全 (CIS & PCI-DSS)
 
-### 第 4 轮: 游客订单安全专项审查
-
-**审查文件**: `internal/router/router.go`、`internal/repository/order_repository.go`、`internal/http/handlers/public/public.go`
-
-**发现并修复的问题:**
-
-| # | 严重程度 | 问题 | 状态 |
-|---|----------|------|------|
-| 1 | 高 | 游客订单 GET 接口（查询/详情/按订单号查询）缺少限流 | ✅ 已修复 |
-
-**已存在的安全措施:**
-- ✅ 游客密码从 JSON 响应中排除（`json:"-"`）
-- ✅ 查询使用 GORM 参数化查询
-- ✅ 游客订单需要 email + password 双重验证
-
-**已知限制（设计决策）:**
-- 游客密码以明文存储 — 这是业务设计（游客订单密码非账户密码，是查询凭证）
-- 游客凭据通过 query 参数传递 — HTTPS 下安全，日志中需注意脱敏
-
-### 第 5 轮: 部署配置与 OWASP CRS 审查
-
-**审查文件**: `Dockerfile`、`docker-compose.yml`、`nginx/nginx.conf`、`nginx/modsecurity/dujiao-crs-rules.conf`
-
-**发现并修复的问题:**
-
-| # | 严重程度 | 问题 | 状态 |
-|---|----------|------|------|
-| 1 | 中 | OWASP CRS 规则仅覆盖 API，未覆盖前端和全站 | ✅ 已修复 — 新增前端/管理后台/全站安全规则 |
-| 2 | 中 | 部署文档缺少前端安全部署指南 | ✅ 已修复 — 添加详细前端部署步骤 |
+**审查文件**: `Dockerfile`、`docker-compose.yml`、`nginx/nginx.conf`、`nginx/modsecurity/dujiao-crs-rules.conf`、`.env.example`、`config.yml.example`
 
 **CIS Docker Benchmark 合规状态:**
 
@@ -114,25 +93,47 @@
 | 5.2 | 资源限制 | ✅ CPU 2.0/内存 512M | — | — |
 | 5.3 | 最小 Linux 能力 | ✅ `cap_drop: ALL` | — | — |
 | 5.12 | 禁止新权限 | ✅ `no-new-privileges` | — | — |
-| 6.1 | 健康检查 | ✅ | ✅ | ✅ |
+| 5.26 | 健康检查 | ✅ | ✅ | ✅ |
 
----
-
-## PCI-DSS 合规状态
+**PCI-DSS 合规状态:**
 
 | 编号 | 要求 | 状态 |
 |------|------|------|
 | 2.2.1 | 仅启用必要服务 | ✅ |
-| 2.2.2 | 不使用默认密码 | ✅ 强制检查弱密钥 |
-| 4.1 | 加密传输 | ✅ NGINX TLS 配置就绪 |
+| 2.2.2 | 不使用默认密码 | ✅ 启动时强制检查弱密钥 |
+| 4.1 | 加密传输 | ✅ NGINX TLS 配置就绪（需取消注释） |
 | 6.5.1 | 注入防护 | ✅ 参数化查询 + OWASP CRS |
 | 6.5.3 | 安全存储 | ✅ bcrypt 哈希 |
 | 6.5.7 | XSS 防护 | ✅ CSP 头 + v-html 仅管理员内容 |
 | 6.5.10 | DoS 防护 | ✅ 超时 + 限流（含游客接口） |
 | 6.6 | WAF | ✅ OWASP CRS 整站规则就绪 |
 | 7.1 | 访问控制 | ✅ RBAC + 管理后台 IP 限制 |
-| 8.2.1 | 密码认证 | ✅ Redis 密码 + bcrypt 用户密码 |
+| 8.2.1 | 密码认证 | ✅ bcrypt 用户密码 |
 | 10.1 | 审计日志 | ✅ 结构化日志 + Request ID |
+
+### 第 5 轮: 前端安全与支付签名
+
+**审查文件**: `user/src/`、`admin/src/`、`internal/payment/` 全部支付商
+
+**发现的风险点（已评估，风险可控）:**
+
+| # | 严重程度 | 问题 | 评估 |
+|---|----------|------|------|
+| 1 | 中 | `v-html` 在 3 处使用（BlogDetail/ProductDetail/Legal） | 风险可控 — 内容均来自管理后台，非用户输入 |
+| 2 | 低 | JWT Token 存储在 localStorage | 行业通用做法，CSP 头缓解 XSS 风险 |
+| 3 | 低 | `customScripts.ts` 动态注入脚本 | 仅管理员可配置，用于统计代码 |
+
+**支付签名验证（全部通过）:**
+
+| 支付方式 | 签名验证 | 验证函数 |
+|----------|----------|----------|
+| Alipay | ✅ RSA2 | `alipay.VerifyCallback()` + `VerifyCallbackOwnership()` |
+| WeChat Pay | ✅ 官方 SDK | `VerifyAndDecodeWebhook()` |
+| Stripe | ✅ HMAC-SHA256 | `VerifyAndParseWebhook()` |
+| PayPal | ✅ 官方 API | `HandlePaypalWebhook()` |
+| Epay | ✅ MD5/RSA | `epay.VerifyCallback()` |
+| BEpusdt | ✅ HMAC | `epusdt.VerifyCallback()` |
+| TokenPay | ✅ MD5 HMAC | `tokenpay.VerifyCallback()` |
 
 ---
 
@@ -140,13 +141,13 @@
 
 | 轮次 | 审查内容 | 发现问题 | 已修复 | 残留风险 |
 |------|----------|----------|--------|----------|
-| 第 1 轮 | Go 后端代码 | 1 高 | 1 ✅ | 0 |
-| 第 2 轮 | Vue 前端代码 | 1 中 + 2 低 | — | 3（风险可控） |
-| 第 3 轮 | 支付安全 | 0 | — | 0 |
-| 第 4 轮 | 游客订单安全 | 1 高 | 1 ✅（同第 1 轮） | 0 |
-| 第 5 轮 | 部署/CRS 配置 | 2 中 | 2 ✅ | 0 |
+| 第 1 轮 | 认证授权/JWT | 1 高 | 1 ✅ | 0 |
+| 第 2 轮 | 支付/订单/优惠券 | 1 高 | 1 ✅ | 0 |
+| 第 3 轮 | 注入/输入验证 | 0 | — | 0 |
+| 第 4 轮 | Docker/部署/CIS/PCI | 0 | — | 0 |
+| 第 5 轮 | 前端/支付签名 | 1 中 + 2 低 | — | 3（风险可控） |
 
-**最终结论：未发现未修复的高危或严重安全漏洞。**
+**最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -156,7 +157,7 @@
 ### 改进建议
 
 1. 生产环境使用 PostgreSQL 替代 SQLite
-2. 配置 TLS/HTTPS
+2. 配置 TLS/HTTPS（取消注释 NGINX SSL 配置）
 3. CORS `allowed_origins` 配置具体域名，不使用 `*`
 4. 管理后台限制 IP 白名单
 5. 启用 OWASP CRS WAF
@@ -170,4 +171,5 @@
 - 审查轮次：5 轮完整审查
 - 审查范围：全部 Go API 源代码、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、OWASP CRS 规则
 - 审查方法：人工代码审查 × 5 轮 + 自动化测试（go test 17 套件全部通过）
+- 已修复：2 个高危问题（User JWT 弱密钥检测缺失、优惠券并发超限竞态条件）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**

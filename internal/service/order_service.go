@@ -438,6 +438,9 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 				return err
 			}
 			if err := couponRepo.IncrementUsedCount(result.AppliedCoupon.ID, 1); err != nil {
+				if errors.Is(err, repository.ErrCouponUsageLimitExceeded) {
+					return ErrCouponUsageLimit
+				}
 				return err
 			}
 		}
@@ -449,6 +452,9 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 		}
 		if errors.Is(err, ErrManualStockInsufficient) {
 			return nil, ErrManualStockInsufficient
+		}
+		if errors.Is(err, ErrCouponUsageLimit) {
+			return nil, ErrCouponUsageLimit
 		}
 		return nil, ErrOrderCreateFailed
 	}

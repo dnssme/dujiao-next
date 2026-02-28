@@ -35,10 +35,18 @@ func main() {
 
 	if cfg.Server.Mode == "release" {
 		if isWeakSecret(cfg.JWT.SecretKey) {
-			stdLog.Fatalf("JWT secret 过弱或仍为默认值，请在生产环境中配置强随机密钥")
+			stdLog.Fatalf("JWT secret (jwt.secret) 过弱或仍为默认值，请在生产环境中配置强随机密钥")
 		}
-	} else if isWeakSecret(cfg.JWT.SecretKey) {
-		stdLog.Printf("警告: JWT secret 过弱或仍为默认值，建议在生产环境中更换")
+		if isWeakSecret(cfg.UserJWT.SecretKey) {
+			stdLog.Fatalf("User JWT secret (user_jwt.secret) 过弱或仍为默认值，请在生产环境中配置强随机密钥")
+		}
+	} else {
+		if isWeakSecret(cfg.JWT.SecretKey) {
+			stdLog.Printf("警告: JWT secret (jwt.secret) 过弱或仍为默认值，建议在生产环境中更换")
+		}
+		if isWeakSecret(cfg.UserJWT.SecretKey) {
+			stdLog.Printf("警告: User JWT secret (user_jwt.secret) 过弱或仍为默认值，建议在生产环境中更换")
+		}
 	}
 
 	// 初始化数据库
