@@ -16,6 +16,7 @@ type Admin struct {
 	IsSuper            bool           `gorm:"not null;default:false;index" json:"is_super"` // 是否超级管理员（免权限校验）
 	LastLoginAt        *time.Time     `json:"last_login_at"`                                // 最后登录时间
 	CreatedAt          time.Time      `gorm:"index" json:"created_at"`                      // 创建时间
+	UpdatedAt          time.Time      `gorm:"index" json:"updated_at"`                      // 更新时间
 	DeletedAt          gorm.DeletedAt `gorm:"index" json:"-"`                               // 软删除时间
 }
 
