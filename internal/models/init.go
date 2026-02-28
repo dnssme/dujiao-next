@@ -3,6 +3,7 @@ package models
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"strings"
 
 	"github.com/dujiao-next/internal/logger"
@@ -29,7 +30,11 @@ func InitDefaultAdmin(username, password string) error {
 	}
 	generated := false
 	if password == "" {
-		password = generateRandomPassword(24)
+		var err error
+		password, err = generateRandomPassword(24)
+		if err != nil {
+			return fmt.Errorf("generate random password failed: %w", err)
+		}
 		generated = true
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -57,10 +62,10 @@ func InitDefaultAdmin(username, password string) error {
 	return nil
 }
 
-func generateRandomPassword(length int) string {
+func generateRandomPassword(length int) (string, error) {
 	buf := make([]byte, length)
 	if _, err := rand.Read(buf); err != nil {
-		return hex.EncodeToString(buf[:16])
+		return "", err
 	}
-	return hex.EncodeToString(buf)[:length]
+	return hex.EncodeToString(buf)[:length], nil
 }
