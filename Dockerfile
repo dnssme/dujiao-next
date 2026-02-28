@@ -26,7 +26,7 @@ RUN set -eux; \
 FROM alpine:3.21
 
 # CIS 4.1 - 使用受信任的最小化基础镜像 + 仅安装运行时必需包
-RUN apk --no-cache add ca-certificates tzdata \
+RUN apk --no-cache add ca-certificates tzdata wget \
     && rm -rf /var/cache/apk/*
 
 # CIS 4.2 / PCI-DSS 8.6 - 创建非 root 用户运行应用
