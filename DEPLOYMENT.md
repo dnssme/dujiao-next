@@ -364,13 +364,14 @@ add_header X-Frame-Options "DENY" always;
 
 #### 5. 客户端证书认证（可选高安全方案）
 
-对于高安全要求的环境，可配置 NGINX mTLS：
+对于高安全要求的环境，可配置 NGINX mTLS（简化示例，详见 NGINX 官方文档）：
 
 ```nginx
 server {
     # ...管理后台配置...
     ssl_client_certificate /etc/nginx/ssl/admin-ca.crt;
     ssl_verify_client on;
+    ssl_verify_depth 1;
 }
 ```
 
