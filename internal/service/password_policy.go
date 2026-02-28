@@ -32,23 +32,22 @@ func (e passwordPolicyError) Args() []interface{} {
 // avoid giving users a false sense of security (CIS 5.2).
 const BcryptMaxPasswordBytes = 72
 
+// pciDSSMinPasswordLength PCI-DSS 8.2.3 要求密码至少 7 个字符。
+// 即使管理员未配置策略，此下限也始终生效。
+const pciDSSMinPasswordLength = 7
+
 func validatePassword(policy config.PasswordPolicyConfig, password string) error {
 	if len(password) > BcryptMaxPasswordBytes {
 		return passwordPolicyError{key: "error.password_max_length", args: []interface{}{BcryptMaxPasswordBytes}}
 	}
 
-	if policy.MinLength <= 0 &&
-		!policy.RequireUpper &&
-		!policy.RequireLower &&
-		!policy.RequireNumber &&
-		!policy.RequireSpecial {
-		return nil
+	// PCI-DSS 8.2.3 — 始终强制最小 7 字符，即使策略未配置。
+	effectiveMinLength := policy.MinLength
+	if effectiveMinLength < pciDSSMinPasswordLength {
+		effectiveMinLength = pciDSSMinPasswordLength
 	}
-
-	if policy.MinLength > 0 {
-		if len([]rune(password)) < policy.MinLength {
-			return passwordPolicyError{key: "error.password_min_length", args: []interface{}{policy.MinLength}}
-		}
+	if len([]rune(password)) < effectiveMinLength {
+		return passwordPolicyError{key: "error.password_min_length", args: []interface{}{effectiveMinLength}}
 	}
 
 	var hasUpper, hasLower, hasNumber, hasSpecial bool

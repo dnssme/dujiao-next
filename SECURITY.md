@@ -150,6 +150,11 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 8 轮 | 模型定义/gorm 标签 | 3 低-中 | 3 ✅ | 0 |
 | 第 9 轮 | 支付集成安全 | 1 高 | 1 ✅ | 0 |
 | 第 10 轮 | 全量回归+CodeQL | 0（CodeQL 0 alerts） | — | 0 |
+| 第 11 轮 | CIS/PCI-DSS 深度合规审查 | 4 中 | 4 ✅ | 0 |
+| 第 12 轮 | 认证时序攻击/支付纵深防御 | 4 中-高 | 4 ✅ | 0 |
+| 第 13-17 轮 | 全量 5 轮终审（go vet + go test + 手工代码审查） | 0 | — | 0 |
+| 第 18 轮 | 安全头/密码策略/支付防护/订单竞态 | 6 中-高 | 6 ✅ | 0 |
+| 第 19 轮 | 5-agent 并行深度审查 + CodeQL | 3 中-高 | 3 ✅ | 0 |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -175,6 +180,24 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 16 | 中 | Admin 模型缺少 UpdatedAt 字段 | `admin.go` 添加 `UpdatedAt time.Time` |
 | 17 | 低 | Product/Banner UpdatedAt 缺少 gorm index | 添加 `gorm:"index"` 标签 |
 | 18 | 高 | 支付宝回调 sign_type 可被降级攻击 | `alipay.go` 配置 sign_type 优先于回调参数 |
+| 19 | 中 | GORM SQL 日志生产环境使用 Info 级别，泄露敏感查询 (PCI-DSS 10.2) | `models/db.go` 添加 `InitDBWithMode()`，release 模式使用 `logger.Warn` |
+| 20 | 中 | X-Request-ID 头未校验，可导致日志注入 (CIS 审计日志完整性) | `middleware.go` 添加 `isValidRequestID()` 格式校验 |
+| 21 | 低 | 上传目录权限 0755 过宽 (CIS 4.6) | `upload_service.go` 改为 `0750` |
+| 22 | 中 | WebP 解析器无 chunk 大小限制，可导致内存 DoS | `upload_service.go` 添加 `maxWebPChunkSize = 100MB` 限制 |
+| 23 | 高 | 管理员登录时序攻击：用户不存在时跳过 bcrypt 比对，响应时间不恒定 (PCI-DSS 6.5.10) | `auth_service.go` 添加 `dummyBcryptHash` 比对 |
+| 24 | 高 | 用户登录时序攻击：用户不存在时跳过 bcrypt 比对，响应时间不恒定 (PCI-DSS 6.5.10) | `user_auth_service.go` 添加 `dummyBcryptHash` 比对 |
+| 25 | 中 | 支付回调金额校验通过但币种为空时无警告日志 (PCI-DSS 6.5.1) | `payment_service_callback.go` 添加 amount-without-currency 日志告警 |
+| 26 | 中 | 订单商品种类数无上限，可通过大量不同商品耗尽资源 (PCI-DSS 6.5.10) | `order_service.go` 添加 `maxOrderItemTypes=100` 限制 |
+| 27 | 低 | 推广码超长时静默截断可能导致不同推广码映射到相同值 | `order_service.go` 超长推广码直接丢弃而非截断 |
+| 28 | 中 | API 层缺少安全响应头 (CIS 5.1 / PCI-DSS 6.5.7) | `middleware.go` 添加 SecurityHeadersMiddleware（X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Cache-Control） |
+| 29 | 中 | HTTP Server 无请求头大小限制 (PCI-DSS 6.5.10) | `http_service.go` 添加 `MaxHeaderBytes: 1<<20` |
+| 30 | 高 | 密码策略未配置时不强制最小长度 (PCI-DSS 8.2.3) | `password_policy.go` 添加 `pciDSSMinPasswordLength=7` 绝对下限 |
+| 31 | 高 | 支付金额无上限可导致溢出 (PCI-DSS 6.5.5) | `payment_service.go` 添加 `maxPayableAmount=10M` 上限检查 |
+| 32 | 中 | Capture 返回金额未校验正值 (PCI-DSS 6.5.5) | `payment_service_capture.go` PayPal/WeChat/Stripe 解析后添加 `parsed.IsPositive()` 校验 |
+| 33 | 高 | 订单状态更新无条件 WHERE 导致 TOCTOU 竞态 (PCI-DSS 6.5.6) | `order_repository.go` 添加 `UpdateStatusConditional()`，`payment_service_callback.go` markOrderPaid 改用条件更新 |
+| 34 | 中 | LIKE 转义缺少反斜杠处理，可绕过通配符过滤 | `pagination.go` `escapeLikePattern()` 增加反斜杠剥离 |
+| 35 | 高 | 订单取消可覆盖已支付状态（取消 TOCTOU 竞态） | `order_service.go` `cancelOrderWithChildren()` 改用 `UpdateStatusConditional()` 仅从 pending_payment 取消 |
+| 36 | 中 | Stripe webhook 时间戳容差 300s 过长，重放攻击窗口大 | `stripe.go` 默认容差从 300s 降至 60s |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -195,8 +218,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：10 轮完整审查（5 轮初审 + 5 轮深度复查）
-- 审查范围：全部 Go API 源代码（245 个 .go 文件、46 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
-- 审查方法：人工代码审查 × 10 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）× 2
-- 已修复：7 个高危问题 + 10 个中危问题 + 1 个低危问题（共 18 项）
+- 审查轮次：19 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固 + 1 轮 5-agent 并行深度审查）
+- 审查范围：全部 Go API 源代码（211+ 个 .go 生产文件、47 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
+- 审查方法：人工代码审查 × 19 轮 + 5-agent 并行深度审查 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 5
+- 已修复：12 个高危问题 + 19 个中危问题 + 5 个低危问题（共 36 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**

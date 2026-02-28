@@ -731,8 +731,9 @@ func normalizeAffiliateCode(raw string) string {
 	if code == "" {
 		return ""
 	}
+	// CIS — 拒绝超长推广码，避免截断导致不同推广码映射到相同值。
 	if len(code) > 32 {
-		return code[:32]
+		return ""
 	}
 	return code
 }
@@ -850,8 +851,16 @@ func (s *OrderService) cancelOrderWithChildren(order *models.Order, rollbackCoup
 			"canceled_at": now,
 			"updated_at":  now,
 		}
-		if err := orderRepo.UpdateStatus(order.ID, constants.OrderStatusCanceled, updates); err != nil {
+		// PCI-DSS 6.5.6 — 使用条件更新防止取消覆盖已支付的订单（TOCTOU 防护）。
+		affected, err := orderRepo.UpdateStatusConditional(order.ID,
+			[]string{constants.OrderStatusPendingPayment},
+			constants.OrderStatusCanceled, updates)
+		if err != nil {
 			return ErrOrderUpdateFailed
+		}
+		if affected == 0 {
+			// 订单状态已变（如已支付），放弃取消。
+			return nil
 		}
 		for _, child := range order.Children {
 			if child.Status == constants.OrderStatusCompleted || child.Status == constants.OrderStatusDelivered {
@@ -1361,6 +1370,10 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 		return nil, nil
 	}
 	const maxItemQuantity = 10000
+	const maxOrderItemTypes = 100 // PCI-DSS 6.5.10 — 限制单笔订单最大商品种类数，防止资源耗尽攻击
+	if len(items) > maxOrderItemTypes {
+		return nil, ErrOrderItemTypesExceeded
+	}
 	merged := make([]CreateOrderItem, 0, len(items))
 	indexMap := make(map[string]int)
 	for _, item := range items {

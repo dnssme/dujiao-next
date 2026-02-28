@@ -43,6 +43,7 @@ var userOrderCommonErrorRules = []mappedHandlerError{
 	{target: service.ErrProductSKUInvalid, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: service.ErrInvalidOrderItem, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: service.ErrOrderItemQuantityExceeded, code: response.CodeBadRequest, key: "error.order_item_invalid"},
+	{target: service.ErrOrderItemTypesExceeded, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: service.ErrInvalidOrderAmount, code: response.CodeBadRequest, key: "error.order_amount_invalid"},
 	{target: service.ErrProductPurchaseNotAllowed, code: response.CodeBadRequest, key: "error.product_purchase_not_allowed"},
 	{target: service.ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
@@ -81,6 +82,7 @@ var guestOrderCommonErrorRules = []mappedHandlerError{
 	{target: service.ErrGuestCouponNotAllowed, code: response.CodeBadRequest, key: "error.guest_coupon_not_allowed"},
 	{target: service.ErrInvalidOrderItem, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: service.ErrOrderItemQuantityExceeded, code: response.CodeBadRequest, key: "error.order_item_invalid"},
+	{target: service.ErrOrderItemTypesExceeded, code: response.CodeBadRequest, key: "error.order_item_invalid"},
 	{target: service.ErrInvalidOrderAmount, code: response.CodeBadRequest, key: "error.order_amount_invalid"},
 	{target: service.ErrManualStockInsufficient, code: response.CodeBadRequest, key: "error.manual_stock_insufficient"},
 	{target: service.ErrCardSecretInsufficient, code: response.CodeBadRequest, key: "error.card_secret_insufficient"},
@@ -135,6 +137,7 @@ var paymentCaptureErrorRules = []mappedHandlerError{
 	{target: service.ErrPaymentGatewayResponseInvalid, code: response.CodeBadRequest, key: "error.payment_gateway_response_invalid"},
 	{target: service.ErrPaymentStatusInvalid, code: response.CodeBadRequest, key: "error.payment_status_invalid"},
 	{target: service.ErrPaymentAmountMismatch, code: response.CodeBadRequest, key: "error.payment_amount_mismatch"},
+	{target: service.ErrPaymentAmountExceedsLimit, code: response.CodeBadRequest, key: "error.payment_amount_exceeds_limit"},
 	{target: service.ErrPaymentCurrencyMismatch, code: response.CodeBadRequest, key: "error.payment_currency_mismatch"},
 	{target: service.ErrOrderNotFound, code: response.CodeNotFound, key: "error.order_not_found"},
 }

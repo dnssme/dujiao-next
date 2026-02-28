@@ -23,6 +23,7 @@ type OrderRepository interface {
 	ListByGuest(email, password string, page, pageSize int) ([]models.Order, int64, error)
 	ListAdmin(filter OrderListFilter) ([]models.Order, int64, error)
 	UpdateStatus(id uint, status string, updates map[string]interface{}) error
+	UpdateStatusConditional(id uint, fromStatuses []string, toStatus string, updates map[string]interface{}) (int64, error)
 	Transaction(fn func(tx *gorm.DB) error) error
 	WithTx(tx *gorm.DB) *GormOrderRepository
 }
@@ -238,6 +239,17 @@ func (r *GormOrderRepository) UpdateStatus(id uint, status string, updates map[s
 	}
 	updates["status"] = status
 	return r.db.Model(&models.Order{}).Where("id = ?", id).Updates(updates).Error
+}
+
+// UpdateStatusConditional 条件更新订单状态 — 仅当当前状态匹配 fromStatuses 时才更新。
+// PCI-DSS 6.5.6 — 避免并发回调造成的 TOCTOU 竞态条件。
+func (r *GormOrderRepository) UpdateStatusConditional(id uint, fromStatuses []string, toStatus string, updates map[string]interface{}) (int64, error) {
+	if updates == nil {
+		updates = map[string]interface{}{}
+	}
+	updates["status"] = toStatus
+	result := r.db.Model(&models.Order{}).Where("id = ? AND status IN ?", id, fromStatuses).Updates(updates)
+	return result.RowsAffected, result.Error
 }
 
 // ListByUser 获取用户订单列表

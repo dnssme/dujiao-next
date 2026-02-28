@@ -30,6 +30,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// maxPayableAmount 单笔支付上限 — PCI-DSS 6.5.5（防止整数/精度溢出）。
+// 如果需要调大请同步修改对应的支付网关配置。
+var maxPayableAmount = decimal.NewFromInt(10_000_000) // 1000 万
+
 // PaymentService 支付服务
 type PaymentService struct {
 	orderRepo       repository.OrderRepository
@@ -298,6 +302,9 @@ func (s *PaymentService) CreatePayment(input CreatePaymentInput) (*CreatePayment
 			feeAmount = onlineAmount.Mul(feeRate).Div(decimal.NewFromInt(100)).Round(2)
 		}
 		payableAmount := onlineAmount.Add(feeAmount).Round(2)
+		if payableAmount.IsNegative() || payableAmount.GreaterThan(maxPayableAmount) {
+			return ErrPaymentAmountExceedsLimit
+		}
 		payment = &models.Payment{
 			OrderID:         lockedOrder.ID,
 			ChannelID:       channel.ID,
@@ -467,6 +474,9 @@ func (s *PaymentService) CreateWalletRechargePayment(input CreateWalletRechargeP
 		feeAmount = amount.Mul(feeRate).Div(decimal.NewFromInt(100)).Round(2)
 	}
 	payableAmount := amount.Add(feeAmount).Round(2)
+	if payableAmount.IsNegative() || payableAmount.GreaterThan(maxPayableAmount) {
+		return nil, ErrPaymentAmountExceedsLimit
+	}
 	currency := normalizeWalletCurrency(input.Currency)
 	if err := validatePaymentCurrencyForChannel(currency, channel); err != nil {
 		return nil, err

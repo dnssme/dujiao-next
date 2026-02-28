@@ -67,6 +67,7 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 
 	// 中间件
 	r.Use(gin.Recovery())
+	r.Use(SecurityHeadersMiddleware())
 	r.Use(RequestIDMiddleware())
 	r.Use(LoggerMiddleware(log))
 	r.Use(CORSMiddleware(cfg.CORS))
