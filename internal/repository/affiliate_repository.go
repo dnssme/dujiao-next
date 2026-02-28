@@ -372,7 +372,8 @@ func (r *GormAffiliateRepository) ListCommissionsByWithdrawIDForUpdate(withdrawI
 		return []models.AffiliateCommission{}, nil
 	}
 	var rows []models.AffiliateCommission
-	if err := r.db.Clauses(clause.Locking{Strength: "UPDATE"}).
+	if err := r.db.Model(&models.AffiliateCommission{}).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("withdraw_request_id = ?", withdrawID).
 		Order("id asc").
 		Find(&rows).Error; err != nil {

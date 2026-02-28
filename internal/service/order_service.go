@@ -1355,6 +1355,7 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 	if len(items) == 0 {
 		return nil, nil
 	}
+	const maxItemQuantity = 10000
 	merged := make([]CreateOrderItem, 0, len(items))
 	indexMap := make(map[string]int)
 	for _, item := range items {
@@ -1364,7 +1365,13 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 		key := buildOrderItemKey(item.ProductID, item.SKUID)
 		if idx, ok := indexMap[key]; ok {
 			merged[idx].Quantity += item.Quantity
+			if merged[idx].Quantity > maxItemQuantity {
+				return nil, ErrInvalidOrderItem
+			}
 			continue
+		}
+		if item.Quantity > maxItemQuantity {
+			return nil, ErrInvalidOrderItem
 		}
 		indexMap[key] = len(merged)
 		merged = append(merged, CreateOrderItem{

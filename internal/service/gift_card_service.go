@@ -504,11 +504,10 @@ func randomHex(n int) string {
 	}
 	buf := make([]byte, n)
 	if _, err := crand.Read(buf); err != nil {
-		fallback := make([]byte, n)
-		for i := range fallback {
-			fallback[i] = byte('A' + (i % 26))
+		// 二次尝试，避免因瞬时故障产生确定性编码
+		if _, err2 := crand.Read(buf); err2 != nil {
+			panic("crypto/rand unavailable: " + err2.Error())
 		}
-		return hex.EncodeToString(fallback)
 	}
 	return hex.EncodeToString(buf)
 }

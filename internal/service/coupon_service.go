@@ -125,7 +125,7 @@ func (s *CouponService) calculateDiscount(coupon *models.Coupon, eligibleSubtota
 		}
 		return models.NewMoneyFromDecimal(coupon.Value.Decimal), nil
 	case constants.CouponTypePercent:
-		if coupon.Value.Decimal.LessThanOrEqual(decimal.Zero) {
+		if coupon.Value.Decimal.LessThanOrEqual(decimal.Zero) || coupon.Value.Decimal.GreaterThan(decimal.NewFromInt(100)) {
 			return models.Money{}, ErrCouponInvalid
 		}
 		percent := coupon.Value.Decimal.Div(decimal.NewFromInt(100))
