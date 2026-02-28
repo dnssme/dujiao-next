@@ -1,14 +1,14 @@
 package provider
 
 import (
-	"github.com/dujiao-next/internal/authz"
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/logger"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/queue"
-	"github.com/dujiao-next/internal/repository"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/authz"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/queue"
+	"github.com/mzwrt/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/service"
 )
 
 // Container 依赖注入容器

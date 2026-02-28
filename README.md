@@ -112,7 +112,7 @@ dujiao-next/
 
 ```bash
 # 克隆项目
-git clone https://github.com/dujiao-next/dujiao-next.git
+git clone https://github.com/mzwrt/dujiao-next.git
 cd dujiao-next
 
 # 复制配置文件

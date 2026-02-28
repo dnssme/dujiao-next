@@ -3,8 +3,8 @@ package repository
 import (
 	"testing"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"github.com/glebarez/sqlite"
 	"github.com/shopspring/decimal"

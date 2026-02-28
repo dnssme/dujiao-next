@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/payment/tokenpay"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/payment/tokenpay"
+	"github.com/mzwrt/dujiao-next/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"

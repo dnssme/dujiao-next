@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,6 +1,6 @@
 package admin
 
-import handlershared "github.com/dujiao-next/internal/http/handlers/shared"
+import handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 
 func normalizePagination(page, pageSize int) (int, int) {
 	return handlershared.NormalizePagination(page, pageSize)

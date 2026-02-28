@@ -198,6 +198,9 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 34 | 中 | LIKE 转义缺少反斜杠处理，可绕过通配符过滤 | `pagination.go` `escapeLikePattern()` 增加反斜杠剥离 |
 | 35 | 高 | 订单取消可覆盖已支付状态（取消 TOCTOU 竞态） | `order_service.go` `cancelOrderWithChildren()` 改用 `UpdateStatusConditional()` 仅从 pending_payment 取消 |
 | 36 | 中 | Stripe webhook 时间戳容差 300s 过长，重放攻击窗口大 | `stripe.go` 默认容差从 300s 降至 60s |
+| 37 | 高 | Redis 缓存连接不支持 TLS 加密传输 (PCI-DSS 4.1) | `redis.go` + `config.go` 添加 `tls_enabled` / `tls_skip_verify` 配置项，`redis.Options` 注入 `TLSConfig` |
+| 38 | 高 | 队列 Redis 连接不支持 TLS 加密传输 (PCI-DSS 4.1) | `queue/client.go` + `config.go` 添加 `tls_enabled` / `tls_skip_verify` 配置项，`asynq.RedisClientOpt` 注入 `TLSConfig` |
+| 39 | 中 | API 层缺少 Content-Security-Policy 响应头 (CIS 5.1 / PCI-DSS 6.5.7) | `middleware.go` SecurityHeadersMiddleware 添加 `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'` |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -218,8 +221,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：19 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固 + 1 轮 5-agent 并行深度审查）
+- 审查轮次：20 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固 + 1 轮 5-agent 并行深度审查 + 1 轮 PCI-DSS 4.1 合规加固）
 - 审查范围：全部 Go API 源代码（211+ 个 .go 生产文件、47 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
-- 审查方法：人工代码审查 × 19 轮 + 5-agent 并行深度审查 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 5
-- 已修复：12 个高危问题 + 19 个中危问题 + 5 个低危问题（共 36 项）
+- 审查方法：人工代码审查 × 20 轮 + 5-agent 并行深度审查 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 5
+- 已修复：14 个高危问题 + 20 个中危问题 + 5 个低危问题（共 39 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**

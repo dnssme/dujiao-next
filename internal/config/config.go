@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/logger"
 
 	"github.com/spf13/viper"
 )
@@ -98,23 +98,27 @@ type TelegramAuthConfig struct {
 
 // RedisConfig Redis 配置
 type RedisConfig struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
-	Prefix   string `mapstructure:"prefix"`
+	Enabled       bool   `mapstructure:"enabled"`
+	Host          string `mapstructure:"host"`
+	Port          int    `mapstructure:"port"`
+	Password      string `mapstructure:"password"`
+	DB            int    `mapstructure:"db"`
+	Prefix        string `mapstructure:"prefix"`
+	TLSEnabled    bool   `mapstructure:"tls_enabled"`     // PCI-DSS 4.1 — 启用 TLS 加密传输
+	TLSSkipVerify bool   `mapstructure:"tls_skip_verify"` // 跳过 TLS 证书验证（仅用于开发/测试）
 }
 
 // QueueConfig 异步队列配置
 type QueueConfig struct {
-	Enabled     bool           `mapstructure:"enabled"`
-	Host        string         `mapstructure:"host"`
-	Port        int            `mapstructure:"port"`
-	Password    string         `mapstructure:"password"`
-	DB          int            `mapstructure:"db"`
-	Concurrency int            `mapstructure:"concurrency"`
-	Queues      map[string]int `mapstructure:"queues"`
+	Enabled       bool           `mapstructure:"enabled"`
+	Host          string         `mapstructure:"host"`
+	Port          int            `mapstructure:"port"`
+	Password      string         `mapstructure:"password"`
+	DB            int            `mapstructure:"db"`
+	Concurrency   int            `mapstructure:"concurrency"`
+	Queues        map[string]int `mapstructure:"queues"`
+	TLSEnabled    bool           `mapstructure:"tls_enabled"`     // PCI-DSS 4.1 — 启用 TLS 加密传输
+	TLSSkipVerify bool           `mapstructure:"tls_skip_verify"` // 跳过 TLS 证书验证（仅用于开发/测试）
 }
 
 // OrderConfig 订单配置
@@ -292,12 +296,16 @@ func Load() *Config {
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
 	viper.SetDefault("redis.prefix", constants.RedisPrefixDefault)
+	viper.SetDefault("redis.tls_enabled", false)
+	viper.SetDefault("redis.tls_skip_verify", false)
 	viper.SetDefault("queue.enabled", true)
 	viper.SetDefault("queue.host", "127.0.0.1")
 	viper.SetDefault("queue.port", 6379)
 	viper.SetDefault("queue.password", "")
 	viper.SetDefault("queue.db", 1)
 	viper.SetDefault("queue.concurrency", 10)
+	viper.SetDefault("queue.tls_enabled", false)
+	viper.SetDefault("queue.tls_skip_verify", false)
 	viper.SetDefault("queue.queues", map[string]int{
 		"default":  3,
 		"critical": 6,

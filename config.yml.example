@@ -49,6 +49,8 @@ redis:
   password: ""
   db: 0
   prefix: "dj"
+  tls_enabled: false      # PCI-DSS 4.1 — 生产环境 Redis 启用 TLS 时设为 true
+  tls_skip_verify: false   # 跳过 TLS 证书验证（仅开发/测试使用）
 
 queue:
   enabled: true
@@ -57,6 +59,8 @@ queue:
   password: ""
   db: 1
   concurrency: 10
+  tls_enabled: false      # PCI-DSS 4.1 — 生产环境 Redis 启用 TLS 时设为 true
+  tls_skip_verify: false   # 跳过 TLS 证书验证（仅开发/测试使用）
   queues:
     default: 3
     critical: 6

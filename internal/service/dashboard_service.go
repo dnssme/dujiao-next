@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 )
 
 const (

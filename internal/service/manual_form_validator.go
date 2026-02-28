@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 const (

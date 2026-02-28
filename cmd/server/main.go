@@ -7,10 +7,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dujiao-next/internal/app"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/logger"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/app"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -100,12 +100,8 @@ func printStartupBanner() {
 	fmt.Println(ansiCyan + "██║  ██║██║   ██║██   ██║██╔══██║██║   ██║     ██║╚██╗██║██╔══╝   ██╔██╗    ██║   " + ansiReset)
 	fmt.Println(ansiCyan + "██████╔╝╚██████╔╝╚█████╔╝██║  ██║╚██████╔╝     ██║ ╚████║███████╗██╔╝ ██╗   ██║   " + ansiReset)
 	fmt.Println(ansiCyan + "╚═════╝  ╚═════╝  ╚════╝ ╚═╝  ╚═╝ ╚═════╝      ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝   " + ansiReset)
-	fmt.Println(ansiGreen + ansiBold + "Open Source Repositories" + ansiReset)
-	fmt.Println(ansiBlue + "• Root:    https://github.com/dujiao-next" + ansiReset)
-	fmt.Println(ansiBlue + "• API:     https://github.com/dujiao-next/dujiao-next" + ansiReset)
-	fmt.Println(ansiBlue + "• User:    https://github.com/dujiao-next/user" + ansiReset)
-	fmt.Println(ansiBlue + "• Admin:   https://github.com/dujiao-next/admin" + ansiReset)
-	fmt.Println(ansiBlue + "• Official:https://github.com/dujiao-next/document" + ansiReset)
+	fmt.Println(ansiGreen + ansiBold + "Repository" + ansiReset)
+	fmt.Println(ansiBlue + "• GitHub:  https://github.com/mzwrt/dujiao-next" + ansiReset)
 	fmt.Println(ansiDim + "--------------------------------------------------------------" + ansiReset)
 }
 

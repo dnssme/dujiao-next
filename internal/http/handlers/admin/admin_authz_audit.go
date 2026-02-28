@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 
 	"github.com/gin-gonic/gin"
 )

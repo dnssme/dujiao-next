@@ -7,15 +7,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/authz"
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/i18n"
-	"github.com/dujiao-next/internal/logger"
-	"github.com/dujiao-next/internal/repository"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/authz"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/i18n"
+	"github.com/mzwrt/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -39,6 +39,7 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		h.Set("Cache-Control", "no-store")
+		h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
 		c.Next()
 	}
 }

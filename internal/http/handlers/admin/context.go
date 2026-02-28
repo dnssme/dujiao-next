@@ -1,7 +1,7 @@
 package admin
 
 import (
-	handlershared "github.com/dujiao-next/internal/http/handlers/shared"
+	handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 
 	"github.com/gin-gonic/gin"
 )

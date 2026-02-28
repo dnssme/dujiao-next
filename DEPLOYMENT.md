@@ -95,7 +95,7 @@ rename-command DEBUG ""
 
 ```bash
 # 克隆仓库
-git clone https://github.com/dujiao-next/dujiao-next.git
+git clone https://github.com/mzwrt/dujiao-next.git
 cd dujiao-next
 
 # 创建配置文件

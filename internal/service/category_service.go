@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 )
 
 // CategoryService 分类业务服务

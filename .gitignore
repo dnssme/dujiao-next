@@ -18,3 +18,5 @@ admin/dist/
 # SSL certs (generated at deploy time)
 nginx/ssl/
 nginx/modsecurity/unicode.mapping
+# Go build output
+server

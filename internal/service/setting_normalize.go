@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 var settingSupportedLanguages = append([]string(nil), constants.SupportedLocales...)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

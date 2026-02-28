@@ -3,9 +3,9 @@ package service
 import (
 	"testing"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/payment/paypal"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/payment/paypal"
 )
 
 func TestMapPaypalStatus(t *testing.T) {

@@ -3,7 +3,7 @@ package repository
 import (
 	"errors"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"gorm.io/gorm"
 )

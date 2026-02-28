@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 func TestValidateAndNormalizeManualFormRequiredMissing(t *testing.T) {

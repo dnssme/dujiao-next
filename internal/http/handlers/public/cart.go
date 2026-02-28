@@ -4,9 +4,9 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -3,9 +3,9 @@ package admin
 import (
 	"errors"
 
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/service"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dujiao-next/internal/i18n"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/i18n"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"github.com/shopspring/decimal"
 )
