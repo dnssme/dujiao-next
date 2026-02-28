@@ -122,7 +122,7 @@ user_jwt:
   secret: "<另一个≥32字符随机字符串>"  # ⚠️ 必须修改！
 
 redis:
-  host: 127.0.0.1           # ⚠️ 改为你的 Redis 地址
+  host: 127.0.0.1           # ⚠️ 改为你的 Redis 地址（见下方说明）
   port: 6379
   password: "<你的Redis密码>"  # ⚠️ 必须填写
 
@@ -130,6 +130,11 @@ queue:
   host: 127.0.0.1           # ⚠️ 与 redis.host 相同
   port: 6379
   password: "<你的Redis密码>"  # ⚠️ 与 redis.password 相同
+```
+
+> **⚠️ Redis 地址注意：** API 运行在 Docker 容器中，`127.0.0.1` 指向容器内部。
+> 如果 Redis 运行在宿主机上，请使用 `host.docker.internal`（见[故障排查](#故障排查)章节）。
+> 如果 Redis 运行在其他服务器上，填写该服务器的 IP 地址。
 
 cors:
   allowed_origins:
