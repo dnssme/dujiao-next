@@ -72,10 +72,7 @@ func (r *GormCardSecretBatchRepository) ListByProduct(productID, skuID uint, pag
 		return nil, 0, err
 	}
 
-	if pageSize > 0 {
-		offset := (page - 1) * pageSize
-		query = query.Limit(pageSize).Offset(offset)
-	}
+	query = applyPagination(query, page, pageSize)
 
 	var items []models.CardSecretBatch
 	if err := query.Order("id desc").Find(&items).Error; err != nil {
