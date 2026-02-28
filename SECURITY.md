@@ -153,6 +153,7 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 11 轮 | CIS/PCI-DSS 深度合规审查 | 4 中 | 4 ✅ | 0 |
 | 第 12 轮 | 认证时序攻击/支付纵深防御 | 4 中-高 | 4 ✅ | 0 |
 | 第 13-17 轮 | 全量 5 轮终审（go vet + go test + 手工代码审查） | 0 | — | 0 |
+| 第 18 轮 | 安全头/密码策略/支付防护/订单竞态 | 6 中-高 | 6 ✅ | 0 |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -187,6 +188,12 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 25 | 中 | 支付回调金额校验通过但币种为空时无警告日志 (PCI-DSS 6.5.1) | `payment_service_callback.go` 添加 amount-without-currency 日志告警 |
 | 26 | 中 | 订单商品种类数无上限，可通过大量不同商品耗尽资源 (PCI-DSS 6.5.10) | `order_service.go` 添加 `maxOrderItemTypes=100` 限制 |
 | 27 | 低 | 推广码超长时静默截断可能导致不同推广码映射到相同值 | `order_service.go` 超长推广码直接丢弃而非截断 |
+| 28 | 中 | API 层缺少安全响应头 (CIS 5.1 / PCI-DSS 6.5.7) | `middleware.go` 添加 SecurityHeadersMiddleware（X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Cache-Control） |
+| 29 | 中 | HTTP Server 无请求头大小限制 (PCI-DSS 6.5.10) | `http_service.go` 添加 `MaxHeaderBytes: 1<<20` |
+| 30 | 高 | 密码策略未配置时不强制最小长度 (PCI-DSS 8.2.3) | `password_policy.go` 添加 `pciDSSMinPasswordLength=7` 绝对下限 |
+| 31 | 高 | 支付金额无上限可导致溢出 (PCI-DSS 6.5.5) | `payment_service.go` 添加 `maxPayableAmount=10M` 上限检查 |
+| 32 | 中 | Capture 返回金额未校验正值 (PCI-DSS 6.5.5) | `payment_service_capture.go` PayPal/WeChat/Stripe 解析后添加 `parsed.IsPositive()` 校验 |
+| 33 | 高 | 订单状态更新无条件 WHERE 导致 TOCTOU 竞态 (PCI-DSS 6.5.6) | `order_repository.go` 添加 `UpdateStatusConditional()`，`payment_service_callback.go` markOrderPaid 改用条件更新 |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -207,8 +214,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：17 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审）
-- 审查范围：全部 Go API 源代码（211+ 个 .go 生产文件、46 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
-- 审查方法：人工代码审查 × 17 轮 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 3
-- 已修复：9 个高危问题 + 16 个中危问题 + 2 个低危问题（共 27 项）
+- 审查轮次：18 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固）
+- 审查范围：全部 Go API 源代码（211+ 个 .go 生产文件、47 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
+- 审查方法：人工代码审查 × 18 轮 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 4
+- 已修复：11 个高危问题 + 18 个中危问题 + 4 个低危问题（共 33 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**
