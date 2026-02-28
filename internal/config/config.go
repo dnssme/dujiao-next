@@ -330,7 +330,7 @@ func Load() *Config {
 	viper.SetDefault("security.password_policy.require_upper", true)
 	viper.SetDefault("security.password_policy.require_lower", true)
 	viper.SetDefault("security.password_policy.require_number", true)
-	viper.SetDefault("security.password_policy.require_special", false)
+	viper.SetDefault("security.password_policy.require_special", true)
 	viper.SetDefault("email.enabled", false)
 	viper.SetDefault("email.host", "")
 	viper.SetDefault("email.port", 587)

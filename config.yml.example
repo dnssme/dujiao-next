@@ -108,7 +108,7 @@ security:
     require_upper: true
     require_lower: true
     require_number: true
-    require_special: false
+    require_special: true
 
 email:
   enabled: true
