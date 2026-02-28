@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dujiao-next/internal/cache"
@@ -40,6 +41,7 @@ type TelegramIdentityVerified struct {
 
 // TelegramAuthService Telegram 登录校验服务
 type TelegramAuthService struct {
+	mu  sync.RWMutex
 	cfg config.TelegramAuthConfig
 }
 
@@ -53,6 +55,8 @@ func (s *TelegramAuthService) SetConfig(cfg config.TelegramAuthConfig) {
 	if s == nil {
 		return
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.cfg = normalizeTelegramAuthConfig(cfg)
 }
 
@@ -64,7 +68,9 @@ func (s *TelegramAuthService) PublicConfig() map[string]interface{} {
 			"bot_username": "",
 		}
 	}
+	s.mu.RLock()
 	cfg := normalizeTelegramAuthConfig(s.cfg)
+	s.mu.RUnlock()
 	return map[string]interface{}{
 		"enabled":      cfg.Enabled,
 		"bot_username": strings.TrimSpace(cfg.BotUsername),
@@ -76,7 +82,9 @@ func (s *TelegramAuthService) VerifyLogin(ctx context.Context, payload TelegramL
 	if s == nil {
 		return nil, ErrTelegramAuthConfigInvalid
 	}
+	s.mu.RLock()
 	cfg := normalizeTelegramAuthConfig(s.cfg)
+	s.mu.RUnlock()
 	if !cfg.Enabled {
 		return nil, ErrTelegramAuthDisabled
 	}

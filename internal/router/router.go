@@ -27,6 +27,9 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 	}
 	r := gin.New()
 
+	// PCI-DSS 6.5.10 — 限制请求体大小以缓解 DoS
+	r.MaxMultipartMemory = 32 << 20 // 32 MB
+
 	// 初始化 Handler（按前台/后台分组）
 	publicHandler := publichandlers.New(c)
 	adminHandler := adminhandlers.New(c)
