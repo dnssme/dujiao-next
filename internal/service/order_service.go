@@ -1364,7 +1364,7 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 	const maxItemQuantity = 10000
 	const maxOrderItemTypes = 100 // PCI-DSS 6.5.10 — 限制单笔订单最大商品种类数，防止资源耗尽攻击
 	if len(items) > maxOrderItemTypes {
-		return nil, ErrOrderItemQuantityExceeded
+		return nil, ErrOrderItemTypesExceeded
 	}
 	merged := make([]CreateOrderItem, 0, len(items))
 	indexMap := make(map[string]int)

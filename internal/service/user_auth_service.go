@@ -228,7 +228,7 @@ func (s *UserAuthService) LoginWithRememberMe(email, password string, rememberMe
 		return nil, "", time.Time{}, err
 	}
 	if user == nil {
-		// PCI-DSS 6.5.10 — 防止时序攻击：用户不存在时仍执行 bcrypt 比对，确保响应时间恒定。
+		// PCI-DSS 6.5.10 — 缓解时序攻击：用户不存在时仍执行 bcrypt 比对，缩小响应时间差异。
 		_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(password))
 		return nil, "", time.Time{}, ErrInvalidCredentials
 	}
