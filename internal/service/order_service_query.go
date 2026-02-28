@@ -8,6 +8,8 @@ import (
 	"github.com/dujiao-next/internal/logger"
 	"github.com/dujiao-next/internal/models"
 	"github.com/dujiao-next/internal/repository"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ensureOrderCanceledIfExpired 读取时懒同步过期订单状态
@@ -91,11 +93,14 @@ func (s *OrderService) GetOrderByUserOrderNo(orderNo string, userID uint) (*mode
 
 // GetOrderByGuest 获取游客订单详情
 func (s *OrderService) GetOrderByGuest(orderID uint, email, password string) (*models.Order, error) {
-	order, err := s.orderRepo.GetByIDAndGuest(orderID, email, password)
+	order, err := s.orderRepo.GetByIDAndGuest(orderID, email)
 	if err != nil {
 		return nil, ErrOrderFetchFailed
 	}
 	if order == nil {
+		return nil, ErrGuestOrderNotFound
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(order.GuestPassword), []byte(password)); err != nil {
 		return nil, ErrGuestOrderNotFound
 	}
 	if err := s.ensureOrderCanceledIfExpired(order); err != nil {
@@ -107,11 +112,14 @@ func (s *OrderService) GetOrderByGuest(orderID uint, email, password string) (*m
 
 // GetOrderByGuestOrderNo 获取游客订单详情（按订单号）
 func (s *OrderService) GetOrderByGuestOrderNo(orderNo, email, password string) (*models.Order, error) {
-	order, err := s.orderRepo.GetByOrderNoAndGuest(orderNo, email, password)
+	order, err := s.orderRepo.GetByOrderNoAndGuest(orderNo, email)
 	if err != nil {
 		return nil, ErrOrderFetchFailed
 	}
 	if order == nil {
+		return nil, ErrGuestOrderNotFound
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(order.GuestPassword), []byte(password)); err != nil {
 		return nil, ErrGuestOrderNotFound
 	}
 	if err := s.ensureOrderCanceledIfExpired(order); err != nil {
@@ -139,15 +147,21 @@ func (s *OrderService) ListOrdersByUser(filter repository.OrderListFilter) ([]mo
 
 // ListOrdersByGuest 获取游客订单列表
 func (s *OrderService) ListOrdersByGuest(email, password string, page, pageSize int) ([]models.Order, int64, error) {
-	orders, total, err := s.orderRepo.ListByGuest(email, password, page, pageSize)
+	orders, total, err := s.orderRepo.ListByGuest(email, page, pageSize)
 	if err != nil {
 		return nil, 0, ErrOrderFetchFailed
 	}
-	if err := s.ensureOrdersCanceledIfExpired(orders); err != nil {
+	filtered := make([]models.Order, 0, len(orders))
+	for i := range orders {
+		if bcrypt.CompareHashAndPassword([]byte(orders[i].GuestPassword), []byte(password)) == nil {
+			filtered = append(filtered, orders[i])
+		}
+	}
+	if err := s.ensureOrdersCanceledIfExpired(filtered); err != nil {
 		return nil, 0, ErrOrderUpdateFailed
 	}
-	fillOrdersItemsFromChildren(orders)
-	return orders, total, nil
+	fillOrdersItemsFromChildren(filtered)
+	return filtered, total, nil
 }
 
 // ListOrdersForAdmin 管理端订单列表

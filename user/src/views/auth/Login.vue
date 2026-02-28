@@ -164,6 +164,10 @@ const telegramBotUsername = computed(() => String(telegramConfig.value?.bot_user
 const telegramEnabled = computed(() => !!telegramConfig.value?.enabled && telegramBotUsername.value !== '')
 const telegramCallbackName = '__dujiaoUserTelegramLogin'
 
+const isSafeRedirect = (path: unknown): path is string => {
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && !path.includes('://')
+}
+
 const getCaptchaPayload = (): CaptchaPayload | undefined => {
   if (!loginCaptchaEnabled.value) return undefined
   if (captchaProvider.value === 'image') {
@@ -211,7 +215,7 @@ const performLogin = async () => {
       remember_me: rememberMe.value,
       captcha_payload: getCaptchaPayload(),
     })
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/me/orders'
+    const redirect = isSafeRedirect(route.query.redirect) ? route.query.redirect : '/me/orders'
     router.push(redirect)
   } catch (err: any) {
     error.value = err.message || t('auth.login.error')
@@ -254,7 +258,7 @@ const handleTelegramAuth = async (raw: any) => {
   }
   try {
     await userAuthStore.telegramLogin(payload)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/me/orders'
+    const redirect = isSafeRedirect(route.query.redirect) ? route.query.redirect : '/me/orders'
     router.push(redirect)
   } catch (err: any) {
     error.value = err.message || t('auth.login.telegramLoginFailed')

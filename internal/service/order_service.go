@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/dujiao-next/internal/constants"
 	"github.com/dujiao-next/internal/logger"
 	"github.com/dujiao-next/internal/models"
@@ -147,11 +149,15 @@ func (s *OrderService) CreateGuestOrder(input CreateGuestOrderInput) (*models.Or
 	if password == "" {
 		return nil, ErrGuestPasswordRequired
 	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
 	locale := strings.TrimSpace(input.Locale)
 	return s.createOrder(orderCreateParams{
 		UserID:              0,
 		GuestEmail:          email,
-		GuestPassword:       password,
+		GuestPassword:       string(hashedPassword),
 		GuestLocale:         locale,
 		Items:               input.Items,
 		CouponCode:          input.CouponCode,
