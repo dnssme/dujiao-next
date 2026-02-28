@@ -223,7 +223,7 @@ func (h *Handler) UpdateAdminUser(c *gin.Context) {
 		trimmed := strings.TrimSpace(*req.Password)
 		if trimmed != "" {
 			if len(trimmed) > service.BcryptMaxPasswordBytes {
-				respondError(c, response.CodeBadRequest, "error.password_weak", nil)
+				respondError(c, response.CodeBadRequest, "error.password_max_length", nil)
 				return
 			}
 			hashed, err := bcrypt.GenerateFromPassword([]byte(trimmed), bcrypt.DefaultCost)
