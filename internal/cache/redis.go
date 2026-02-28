@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -37,9 +38,10 @@ func InitRedis(cfg *config.RedisConfig) error {
 	}
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", addr, port),
-		Password: cfg.Password,
-		DB:       cfg.DB,
+		Addr:      fmt.Sprintf("%s:%d", addr, port),
+		Password:  cfg.Password,
+		DB:        cfg.DB,
+		TLSConfig: buildRedisTLSConfig(cfg),
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -121,4 +123,15 @@ func buildKey(key string) string {
 		return redisPrefix
 	}
 	return fmt.Sprintf("%s:%s", redisPrefix, trimmed)
+}
+
+// buildRedisTLSConfig 根据配置生成 TLS 配置。
+// PCI-DSS 4.1 — 当 tls_enabled 为 true 时对 Redis 连接启用 TLS 加密传输。
+func buildRedisTLSConfig(cfg *config.RedisConfig) *tls.Config {
+	if cfg == nil || !cfg.TLSEnabled {
+		return nil
+	}
+	return &tls.Config{
+		InsecureSkipVerify: cfg.TLSSkipVerify,
+	}
 }

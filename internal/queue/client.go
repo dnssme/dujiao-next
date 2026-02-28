@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"crypto/tls"
 	"fmt"
 	"strings"
 	"time"
@@ -148,6 +149,7 @@ func buildRedisOpt(cfg *config.QueueConfig) asynq.RedisClientOpt {
 	port := 6379
 	password := ""
 	db := 0
+	var tlsCfg *tls.Config
 	if cfg != nil {
 		if strings.TrimSpace(cfg.Host) != "" {
 			host = strings.TrimSpace(cfg.Host)
@@ -157,10 +159,17 @@ func buildRedisOpt(cfg *config.QueueConfig) asynq.RedisClientOpt {
 		}
 		password = cfg.Password
 		db = cfg.DB
+		// PCI-DSS 4.1 — 当 tls_enabled 为 true 时对队列 Redis 连接启用 TLS 加密传输。
+		if cfg.TLSEnabled {
+			tlsCfg = &tls.Config{
+				InsecureSkipVerify: cfg.TLSSkipVerify,
+			}
+		}
 	}
 	return asynq.RedisClientOpt{
-		Addr:     fmt.Sprintf("%s:%d", host, port),
-		Password: password,
-		DB:       db,
+		Addr:      fmt.Sprintf("%s:%d", host, port),
+		Password:  password,
+		DB:        db,
+		TLSConfig: tlsCfg,
 	}
 }
