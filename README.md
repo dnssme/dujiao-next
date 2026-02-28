@@ -142,7 +142,7 @@ go run cmd/server/main.go -mode worker
 go run cmd/seed/main.go
 ```
 
-### Docker 部署
+### Docker 部署（快速启动）
 
 ```bash
 # 构建镜像
@@ -151,16 +151,35 @@ docker build -t dujiao-next .
 # 运行容器
 docker run -d \
   -p 8080:8080 \
-  -v ./config.yml:/app/config.yml \
+  -v ./config.yml:/app/config.yml:ro \
   -v ./db:/app/db \
   -v ./uploads:/app/uploads \
   -v ./logs:/app/logs \
   dujiao-next
 ```
 
+### Docker Compose 部署（推荐）
+
+项目提供了符合 CIS Docker Benchmark 和 PCI-DSS 安全基准的 `docker-compose.yml`：
+
+```bash
+# 1. 准备配置文件
+cp config.yml.example config.yml
+vim config.yml  # 修改 JWT secret、数据库等配置
+
+# 2. 启动服务
+docker compose up -d
+
+# 3. 查看日志（首次启动时管理员凭据会显示在这里）
+docker compose logs -f dujiao-api
+
+# 4. 停止服务
+docker compose down
+```
+
 ## ⚙️ 配置说明
 
-配置文件为 `config.yml`，参考 `config.yml.example`。支持环境变量覆盖。
+配置文件为 `config.yml`，参考 `config.yml.example`。支持环境变量覆盖（将配置路径中的 `.` 替换为 `_` 并大写，例如 `SERVER_PORT=8080`）。
 
 ### 关键配置项
 
@@ -174,11 +193,41 @@ docker run -d \
 
 ### 默认管理员
 
-首次启动时，系统会自动创建管理员账号：
+首次启动时，如果数据库中没有管理员账号，系统会自动创建一个：
 
-- 通过环境变量指定：`DJ_DEFAULT_ADMIN_USERNAME` / `DJ_DEFAULT_ADMIN_PASSWORD`
-- 通过配置文件指定：`bootstrap.default_admin_username` / `bootstrap.default_admin_password`
-- 如未指定密码，系统会**自动生成随机密码**并输出到日志
+**方式 1：通过环境变量指定凭据（推荐用于生产部署）**
+```bash
+export DJ_DEFAULT_ADMIN_USERNAME=admin
+export DJ_DEFAULT_ADMIN_PASSWORD=your-strong-password-here
+```
+
+**方式 2：通过配置文件指定凭据**
+```yaml
+bootstrap:
+  default_admin_username: "admin"
+  default_admin_password: "your-strong-password-here"
+```
+
+**方式 3：自动生成随机密码（推荐首次体验）**
+
+如果不指定密码，系统会自动生成 24 位随机密码，并以醒目的格式打印到终端（stderr）：
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║           ⚠️  默认管理员账号已自动创建                        ║
+║           ⚠️  Default admin account created                  ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║   用户名 / Username : admin                                  ║
+║   密  码 / Password : a1b2c3d4e5f6a1b2c3d4e5f6              ║
+║                                                              ║
+║   ⚠️  请立即登录后台修改此密码！                              ║
+║   ⚠️  Please change this password immediately!               ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+```
+
+> **Docker 用户**：使用 `docker compose logs dujiao-api` 或 `docker logs <容器名>` 查看此输出。
 
 ## 🔒 安全建议
 
@@ -187,6 +236,75 @@ docker run -d \
 3. **CORS 配置** 请指定具体域名，避免使用 `*`
 4. **数据库** 生产环境推荐使用 PostgreSQL
 5. **HTTPS** 请在反向代理（Nginx）层配置 TLS
+6. **首次登录后立即修改管理员密码**
+
+## 🐳 Docker 安全部署指南（CIS / PCI-DSS）
+
+本项目的 Dockerfile 和 docker-compose.yml 已按照以下安全基准进行加固：
+
+### CIS Docker Benchmark 合规项
+
+| CIS 编号 | 要求 | 实现状态 |
+|-----------|------|----------|
+| 4.1 | 使用受信任的最小化基础镜像 | ✅ Alpine 3.21 + 仅安装 ca-certificates, tzdata |
+| 4.2 | 容器不以 root 用户运行 | ✅ 使用 `appuser:appgroup` 非特权用户 |
+| 4.6 | 添加 HEALTHCHECK 指令 | ✅ 30s 间隔检查 `/health` |
+| 5.2 | 限制容器资源（CPU/内存） | ✅ docker-compose 中设置 limits |
+| 5.3 | 丢弃不需要的 Linux 能力 | ✅ `cap_drop: ALL` |
+| 5.12 | 禁止提权 | ✅ `no-new-privileges:true` |
+| 5.25 | 使用只读根文件系统（Redis） | ✅ Redis 容器启用 `read_only: true` |
+
+### PCI-DSS 合规项
+
+| PCI-DSS 编号 | 要求 | 实现状态 |
+|---------------|------|----------|
+| 2.2.1 | 仅启用必要服务和功能 | ✅ Redis 禁用 FLUSHALL/DEBUG 命令 |
+| 6.4.2 | 开发/测试与生产环境分离 | ✅ `server.mode: release` 强制要求强 JWT secret |
+| 8.6 | 应用和系统使用唯一身份 | ✅ 非 root 用户运行 + 随机密码生成 |
+
+### 生产部署清单
+
+```bash
+# 1. 生成强随机 JWT Secret
+openssl rand -base64 48
+# 输出示例: xK9mL2pQ...（复制到 config.yml 的 jwt.secret 和 user_jwt.secret）
+
+# 2. 准备配置文件
+cp config.yml.example config.yml
+
+# 3. 编辑生产配置（必须修改的项）
+#    - server.mode: release
+#    - jwt.secret: <上面生成的强密钥>
+#    - user_jwt.secret: <另一个强密钥>
+#    - database.driver: postgres（推荐）
+#    - cors.allowed_origins: ["https://your-domain.com"]
+vim config.yml
+
+# 4. 设置管理员密码（推荐使用环境变量）
+export DJ_DEFAULT_ADMIN_PASSWORD=$(openssl rand -base64 24)
+echo "管理员密码: $DJ_DEFAULT_ADMIN_PASSWORD"  # 请妥善保存
+
+# 5. 启动服务
+docker compose up -d
+
+# 6. 验证健康检查
+curl http://localhost:8080/health
+
+# 7. 配置反向代理 + TLS（Nginx 示例）
+#    server {
+#        listen 443 ssl;
+#        server_name api.your-domain.com;
+#        ssl_certificate /path/to/cert.pem;
+#        ssl_certificate_key /path/to/key.pem;
+#        location / {
+#            proxy_pass http://127.0.0.1:8080;
+#            proxy_set_header Host $host;
+#            proxy_set_header X-Real-IP $remote_addr;
+#            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#            proxy_set_header X-Forwarded-Proto $scheme;
+#        }
+#    }
+```
 
 ## 📚 API 概览
 

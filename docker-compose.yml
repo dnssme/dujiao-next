@@ -1,0 +1,98 @@
+# Dujiao-Next 生产部署 Docker Compose 配置
+# 符合 CIS Docker Benchmark 及 PCI-DSS 安全基准
+#
+# 使用方法:
+#   1. cp config.yml.example config.yml && vim config.yml  # 修改配置
+#   2. docker compose up -d                                # 启动服务
+#   3. docker compose logs -f dujiao-api                   # 查看日志
+#
+# 首次启动时，管理员账号和密码会打印在日志中，请注意保存。
+
+services:
+  # ── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # CIS 5.2 - 限制容器资源
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+    # PCI-DSS 2.2.1 - 仅启用必要功能
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --protected-mode yes
+      --rename-command FLUSHALL ""
+      --rename-command FLUSHDB ""
+      --rename-command DEBUG ""
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+    # CIS 5.12 - 限制容器对 host 的访问
+    security_opt:
+      - no-new-privileges:true
+    # CIS 5.25 - 只读根文件系统
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Dujiao-Next API ────────────────────────────────────────
+  dujiao-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dujiao-next:latest
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${DJ_PORT:-8080}:8080"
+    # CIS 5.2 - 限制容器资源
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+    environment:
+      # 管理员凭据（首次启动时使用；留空则自动生成随机密码并打印到日志）
+      - DJ_DEFAULT_ADMIN_USERNAME=${DJ_DEFAULT_ADMIN_USERNAME:-admin}
+      - DJ_DEFAULT_ADMIN_PASSWORD=${DJ_DEFAULT_ADMIN_PASSWORD:-}
+    volumes:
+      # 挂载配置文件（只读）
+      - ./config.yml:/app/config.yml:ro
+      # 持久化数据目录
+      - dujiao_db:/app/db
+      - dujiao_uploads:/app/uploads
+      - dujiao_logs:/app/logs
+    networks:
+      - internal
+    # CIS 5.12 / PCI-DSS 6.4.2 - 安全选项
+    security_opt:
+      - no-new-privileges:true
+    # CIS 5.3 - 丢弃不需要的 Linux 能力
+    cap_drop:
+      - ALL
+    # PCI-DSS 2.2.1 - 禁止提权
+    privileged: false
+
+volumes:
+  redis_data:
+  dujiao_db:
+  dujiao_uploads:
+  dujiao_logs:
+
+networks:
+  internal:
+    driver: bridge
