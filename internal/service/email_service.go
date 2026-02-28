@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"net/smtp"
 	"strings"
+	"sync"
 
 	"github.com/dujiao-next/internal/config"
 	"github.com/dujiao-next/internal/constants"
@@ -17,6 +18,7 @@ import (
 
 // EmailService 邮件发送服务
 type EmailService struct {
+	mu  sync.RWMutex
 	cfg *config.EmailConfig
 }
 
@@ -30,6 +32,8 @@ func (s *EmailService) SetConfig(cfg *config.EmailConfig) {
 	if cfg == nil {
 		return
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.cfg = cfg
 }
 
@@ -69,32 +73,35 @@ func (s *EmailService) SendCustomEmail(toEmail, subject, body string) error {
 }
 
 func (s *EmailService) sendTextEmail(toEmail, subject, body string) error {
-	if s.cfg == nil || !s.cfg.Enabled {
+	s.mu.RLock()
+	cfg := s.cfg
+	s.mu.RUnlock()
+	if cfg == nil || !cfg.Enabled {
 		return ErrEmailServiceDisabled
 	}
-	if s.cfg.Host == "" || s.cfg.Port == 0 || s.cfg.From == "" {
+	if cfg.Host == "" || cfg.Port == 0 || cfg.From == "" {
 		return ErrEmailServiceNotConfigured
 	}
 	if _, err := mail.ParseAddress(toEmail); err != nil {
 		return ErrInvalidEmail
 	}
 
-	from := buildFromAddress(s.cfg.From, s.cfg.FromName)
+	from := buildFromAddress(cfg.From, cfg.FromName)
 	msg := buildEmailMessage(from, toEmail, subject, body)
 
-	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	var auth smtp.Auth
-	if s.cfg.Username != "" || s.cfg.Password != "" {
-		auth = smtp.PlainAuth("", s.cfg.Username, s.cfg.Password, s.cfg.Host)
+	if cfg.Username != "" || cfg.Password != "" {
+		auth = smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
 	}
 
-	if s.cfg.UseSSL {
-		return normalizeEmailSendError(sendMailWithSSL(addr, auth, s.cfg.Host, s.cfg.From, []string{toEmail}, []byte(msg)))
+	if cfg.UseSSL {
+		return normalizeEmailSendError(sendMailWithSSL(addr, auth, cfg.Host, cfg.From, []string{toEmail}, []byte(msg)))
 	}
-	if s.cfg.UseTLS {
-		return normalizeEmailSendError(sendMailWithStartTLS(addr, auth, s.cfg.Host, s.cfg.From, []string{toEmail}, []byte(msg)))
+	if cfg.UseTLS {
+		return normalizeEmailSendError(sendMailWithStartTLS(addr, auth, cfg.Host, cfg.From, []string{toEmail}, []byte(msg)))
 	}
-	return normalizeEmailSendError(sendMailPlain(addr, auth, s.cfg.Host, s.cfg.From, []string{toEmail}, []byte(msg)))
+	return normalizeEmailSendError(sendMailPlain(addr, auth, cfg.Host, cfg.From, []string{toEmail}, []byte(msg)))
 }
 
 func buildVerifyCodeContent(code, purpose, locale string) (string, string) {

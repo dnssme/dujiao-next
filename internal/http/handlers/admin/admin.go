@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -665,7 +666,7 @@ func (h *Handler) UploadFile(c *gin.Context) {
 
 	response.Success(c, gin.H{
 		"url":      url,
-		"filename": file.Filename,
+		"filename": filepath.Base(file.Filename),
 		"size":     file.Size,
 	})
 }

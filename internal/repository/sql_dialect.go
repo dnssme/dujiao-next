@@ -29,14 +29,26 @@ func jsonTextExpr(db *gorm.DB, column, key string) string {
 }
 
 func jsonTextExprByDialect(dialect, column, key string) string {
+	sanitizedKey := sanitizeJSONKey(key)
 	switch strings.ToLower(strings.TrimSpace(dialect)) {
 	case "postgres", "postgresql":
 		// postgres 统一转 jsonb 后再使用 ->> 提取文本
-		return fmt.Sprintf("(%s::jsonb ->> '%s')", column, key)
+		return fmt.Sprintf("(%s::jsonb ->> '%s')", column, sanitizedKey)
 	default:
 		// sqlite 使用 json_extract，语言键使用引号避免 - 等特殊字符问题
-		return fmt.Sprintf("json_extract(%s, '$.\"%s\"')", column, key)
+		return fmt.Sprintf("json_extract(%s, '$.\"%s\"')", column, sanitizedKey)
 	}
+}
+
+// sanitizeJSONKey 校验 JSON 键名仅包含安全字符，防止 SQL 注入。
+func sanitizeJSONKey(key string) string {
+	var b strings.Builder
+	for _, r := range key {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 // localizedJSONCoalesceExpr 生成多语言字段回退表达式。

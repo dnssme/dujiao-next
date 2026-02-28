@@ -16,11 +16,11 @@ type OrderRepository interface {
 	ResolveReceiverEmailByOrderID(orderID uint) (string, error)
 	GetByIDAndUser(id uint, userID uint) (*models.Order, error)
 	GetByOrderNoAndUser(orderNo string, userID uint) (*models.Order, error)
-	GetByIDAndGuest(id uint, email, password string) (*models.Order, error)
-	GetByOrderNoAndGuest(orderNo, email, password string) (*models.Order, error)
+	GetByIDAndGuest(id uint, email string) (*models.Order, error)
+	GetByOrderNoAndGuest(orderNo, email string) (*models.Order, error)
 	ListChildren(parentID uint) ([]models.Order, error)
 	ListByUser(filter OrderListFilter) ([]models.Order, int64, error)
-	ListByGuest(email, password string, page, pageSize int) ([]models.Order, int64, error)
+	ListByGuest(email string, page, pageSize int) ([]models.Order, int64, error)
 	ListAdmin(filter OrderListFilter) ([]models.Order, int64, error)
 	UpdateStatus(id uint, status string, updates map[string]interface{}) error
 	UpdateStatusConditional(id uint, fromStatuses []string, toStatus string, updates map[string]interface{}) (int64, error)
@@ -150,11 +150,11 @@ func (r *GormOrderRepository) GetByOrderNoAndUser(orderNo string, userID uint) (
 }
 
 // GetByIDAndGuest 获取游客订单详情
-func (r *GormOrderRepository) GetByIDAndGuest(id uint, email, password string) (*models.Order, error) {
+func (r *GormOrderRepository) GetByIDAndGuest(id uint, email string) (*models.Order, error) {
 	var order models.Order
 	query := r.withChildren(r.db.Preload("Items").Preload("Fulfillment"))
 	if err := query.
-		Where("id = ? AND user_id = 0 AND guest_email = ? AND guest_password = ? AND parent_id IS NULL", id, email, password).
+		Where("id = ? AND user_id = 0 AND guest_email = ? AND parent_id IS NULL", id, email).
 		First(&order).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -165,11 +165,11 @@ func (r *GormOrderRepository) GetByIDAndGuest(id uint, email, password string) (
 }
 
 // GetByOrderNoAndGuest 获取游客订单详情（按订单号）
-func (r *GormOrderRepository) GetByOrderNoAndGuest(orderNo, email, password string) (*models.Order, error) {
+func (r *GormOrderRepository) GetByOrderNoAndGuest(orderNo, email string) (*models.Order, error) {
 	var order models.Order
 	query := r.withChildren(r.db.Preload("Items").Preload("Fulfillment"))
 	if err := query.
-		Where("order_no = ? AND user_id = 0 AND guest_email = ? AND guest_password = ? AND parent_id IS NULL", orderNo, email, password).
+		Where("order_no = ? AND user_id = 0 AND guest_email = ? AND parent_id IS NULL", orderNo, email).
 		First(&order).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -279,10 +279,10 @@ func (r *GormOrderRepository) ListByUser(filter OrderListFilter) ([]models.Order
 }
 
 // ListByGuest 获取游客订单列表
-func (r *GormOrderRepository) ListByGuest(email, password string, page, pageSize int) ([]models.Order, int64, error) {
+func (r *GormOrderRepository) ListByGuest(email string, page, pageSize int) ([]models.Order, int64, error) {
 	var total int64
 	if err := r.db.Model(&models.Order{}).
-		Where("user_id = 0 AND guest_email = ? AND guest_password = ? AND parent_id IS NULL", email, password).
+		Where("user_id = 0 AND guest_email = ? AND parent_id IS NULL", email).
 		Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -290,7 +290,7 @@ func (r *GormOrderRepository) ListByGuest(email, password string, page, pageSize
 	var orders []models.Order
 	query := applyPagination(r.withChildren(r.db.Preload("Items")), page, pageSize)
 	if err := query.
-		Where("user_id = 0 AND guest_email = ? AND guest_password = ? AND parent_id IS NULL", email, password).
+		Where("user_id = 0 AND guest_email = ? AND parent_id IS NULL", email).
 		Order("id desc").
 		Find(&orders).Error; err != nil {
 		return nil, 0, err

@@ -935,6 +935,9 @@ func normalizeEmail(email string) (string, error) {
 	if normalized == "" {
 		return "", ErrInvalidEmail
 	}
+	if len(normalized) > 254 {
+		return "", ErrInvalidEmail
+	}
 	if _, err := mail.ParseAddress(normalized); err != nil {
 		return "", ErrInvalidEmail
 	}
