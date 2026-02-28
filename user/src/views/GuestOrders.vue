@@ -118,10 +118,15 @@ const { t } = useI18n()
 
 const loadSavedAuth = () => {
   const saved = localStorage.getItem('guest_order_auth')
-  const parsed = saved ? JSON.parse(saved) : {}
+  let parsed: Record<string, unknown> = {}
+  try {
+    parsed = saved ? JSON.parse(saved) : {}
+  } catch {
+    parsed = {}
+  }
   savedAuth.value = {
-    email: parsed.email || '',
-    order_password: parsed.order_password || '',
+    email: String(parsed.email || ''),
+    order_password: String(parsed.order_password || ''),
   }
   email.value = savedAuth.value.email
   orderPassword.value = savedAuth.value.order_password

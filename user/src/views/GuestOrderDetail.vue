@@ -341,10 +341,15 @@ const showTimeCard = computed(() => {
 
 const loadSavedAuth = () => {
   const saved = localStorage.getItem('guest_order_auth')
-  const savedAuth = saved ? JSON.parse(saved) : {}
+  let savedAuth: Record<string, unknown> = {}
+  try {
+    savedAuth = saved ? JSON.parse(saved) : {}
+  } catch {
+    savedAuth = {}
+  }
   auth.value = {
-    email: savedAuth.email || '',
-    order_password: savedAuth.order_password || '',
+    email: String(savedAuth.email || ''),
+    order_password: String(savedAuth.order_password || ''),
   }
 }
 

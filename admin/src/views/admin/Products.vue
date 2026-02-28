@@ -157,7 +157,7 @@ const formatManualStockSummary = (product: any) => {
   }
   const locked = metrics.locked
   const sold = metrics.sold
-  const remaining = Math.max(total, 0)
+  const remaining = Math.max(total - locked - sold, 0)
   return t('admin.products.stock.manualSummary', { remaining, locked, sold })
 }
 
