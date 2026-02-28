@@ -146,6 +146,10 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 3 轮 | 注入/输入验证 | 3 中 | 3 ✅ | 0 |
 | 第 4 轮 | 服务层逻辑/边界 | 5 中-高 | 5 ✅ | 0 |
 | 第 5 轮 | 最终全面复查+CodeQL | 0（CodeQL 0 alerts） | — | 3（风险可控） |
+| 第 6-7 轮 | 仓库层/分页一致性 | 5 低-中 | 5 ✅ | 0 |
+| 第 8 轮 | 模型定义/gorm 标签 | 3 低-中 | 3 ✅ | 0 |
+| 第 9 轮 | 支付集成安全 | 1 高 | 1 ✅ | 0 |
+| 第 10 轮 | 全量回归+CodeQL | 0（CodeQL 0 alerts） | — | 0 |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -167,6 +171,10 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 12 | 中 | 提现查询 SELECT FOR UPDATE 缺少 Model() | `affiliate_repository.go` ListCommissionsByWithdrawIDForUpdate 添加 Model() |
 | 13 | 中 | Worker 订单获取失败不重试导致丢失 | `asynq_worker.go` ErrOrderFetchFailed 改为返回 error 触发重试 |
 | 14 | 中 | 礼品卡随机编码 fallback 生成确定性值 | `gift_card_service.go` randomHex 失败改为 panic 而非确定性 fallback |
+| 15 | 中 | 仓库层分页不一致（5处手动计算 offset） | 统一使用 `applyPagination` 辅助函数 |
+| 16 | 中 | Admin 模型缺少 UpdatedAt 字段 | `admin.go` 添加 `UpdatedAt time.Time` |
+| 17 | 低 | Product/Banner UpdatedAt 缺少 gorm index | 添加 `gorm:"index"` 标签 |
+| 18 | 高 | 支付宝回调 sign_type 可被降级攻击 | `alipay.go` 配置 sign_type 优先于回调参数 |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -187,8 +195,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：5 轮完整审查
-- 审查范围：全部 Go API 源代码、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、OWASP CRS 规则
-- 审查方法：人工代码审查 × 5 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）
-- 已修复：6 个高危问题 + 8 个中危问题（共 14 项）
+- 审查轮次：10 轮完整审查（5 轮初审 + 5 轮深度复查）
+- 审查范围：全部 Go API 源代码（245 个 .go 文件、46 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
+- 审查方法：人工代码审查 × 10 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）× 2
+- 已修复：7 个高危问题 + 10 个中危问题 + 1 个低危问题（共 18 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**
