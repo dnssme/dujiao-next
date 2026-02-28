@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 )
 
 // HTTPService HTTP 服务封装
@@ -17,8 +18,12 @@ func NewHTTPService(addr string, handler http.Handler) *HTTPService {
 	return &HTTPService{
 		name: "http",
 		server: &http.Server{
-			Addr:    addr,
-			Handler: handler,
+			Addr:              addr,
+			Handler:           handler,
+			ReadTimeout:       30 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		},
 	}
 }

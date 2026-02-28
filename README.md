@@ -167,13 +167,16 @@ docker run -d \
 cp config.yml.example config.yml
 vim config.yml  # 修改 JWT secret、数据库等配置
 
-# 2. 启动服务
+# 2. 生成 Redis 密码并写入 .env（需与 config.yml 中 redis.password 一致）
+echo "DJ_REDIS_PASSWORD=$(openssl rand -base64 32)" >> .env
+
+# 3. 启动服务
 docker compose up -d
 
-# 3. 查看日志（首次启动时管理员凭据会显示在这里）
+# 4. 查看日志（首次启动时管理员凭据会显示在这里）
 docker compose logs -f dujiao-api
 
-# 4. 停止服务
+# 5. 停止服务
 docker compose down
 ```
 
@@ -238,6 +241,8 @@ bootstrap:
 5. **HTTPS** 请在反向代理（Nginx）层配置 TLS
 6. **首次登录后立即修改管理员密码**
 
+> 📄 详细安全审查报告请参见 [SECURITY.md](./SECURITY.md)
+
 ## 🐳 Docker 安全部署指南（CIS / PCI-DSS）
 
 本项目的 Dockerfile 和 docker-compose.yml 已按照以下安全基准进行加固：
@@ -276,13 +281,17 @@ cp config.yml.example config.yml
 #    - server.mode: release
 #    - jwt.secret: <上面生成的强密钥>
 #    - user_jwt.secret: <另一个强密钥>
+#    - redis.password: <生成的 Redis 密码>
 #    - database.driver: postgres（推荐）
 #    - cors.allowed_origins: ["https://your-domain.com"]
 vim config.yml
 
-# 4. 设置管理员密码（推荐使用环境变量）
-export DJ_DEFAULT_ADMIN_PASSWORD=$(openssl rand -base64 24)
-echo "管理员密码: $DJ_DEFAULT_ADMIN_PASSWORD"  # 请妥善保存
+# 4. 创建 .env 文件（Docker Compose 使用）
+cat > .env <<EOF
+DJ_REDIS_PASSWORD=$(openssl rand -base64 32)
+DJ_DEFAULT_ADMIN_PASSWORD=$(openssl rand -base64 24)
+EOF
+cat .env  # 请妥善保存此文件中的密码
 
 # 5. 启动服务
 docker compose up -d
@@ -290,7 +299,10 @@ docker compose up -d
 # 6. 验证健康检查
 curl http://localhost:8080/health
 
-# 7. 配置反向代理 + TLS（Nginx 示例）
+# 7. 查看管理员凭据（如使用随机密码，凭据在日志中）
+docker compose logs dujiao-api | head -30
+
+# 8. 配置反向代理 + TLS（Nginx 示例）
 #    server {
 #        listen 443 ssl;
 #        server_name api.your-domain.com;
