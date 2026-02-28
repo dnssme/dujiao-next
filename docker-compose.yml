@@ -1,15 +1,62 @@
-# Dujiao-Next 生产部署 Docker Compose 配置
-# 符合 CIS Docker Benchmark 及 PCI-DSS 安全基准
+# ============================================================================
+# Dujiao-Next 全栈生产部署 Docker Compose 配置
+# Full-stack Production Deployment — CIS Docker Benchmark & PCI-DSS Compliant
+# ============================================================================
 #
-# 使用方法:
-#   1. cp config.yml.example config.yml && vim config.yml  # 修改配置
-#   2. echo "DJ_REDIS_PASSWORD=$(openssl rand -base64 32)" >> .env  # 生成 Redis 密码
-#   3. docker compose up -d                                # 启动服务
-#   4. docker compose logs -f dujiao-api                   # 查看日志
+# 架构: NGINX (WAF + TLS) → User Frontend + Admin Frontend + API Backend + Redis
 #
-# 首次启动时，管理员账号和密码会打印在日志中，请注意保存。
+# 使用方法 / Usage:
+#   1. cp config.yml.example config.yml && vim config.yml    # 修改 API 配置
+#   2. cp .env.example .env && vim .env                      # 修改环境变量
+#   3. docker compose up -d                                  # 启动所有服务
+#   4. docker compose logs -f dujiao-api                     # 查看 API 日志
+#
+# 首次启动时，管理员账号和密码会打印在 API 日志中，请注意保存。
+# On first start, admin credentials are printed to API logs — save them!
+# ============================================================================
 
 services:
+  # ── NGINX Reverse Proxy (WAF + TLS Termination) ───────────
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      dujiao-api:
+        condition: service_healthy
+      dujiao-user:
+        condition: service_healthy
+      dujiao-admin:
+        condition: service_healthy
+    ports:
+      - "${DJ_HTTP_PORT:-80}:80"
+      - "${DJ_HTTPS_PORT:-443}:443"
+      - "${DJ_ADMIN_PORT:-81}:81"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Uncomment for TLS:
+      # - ./nginx/ssl:/etc/nginx/ssl:ro
+      # Uncomment for ModSecurity WAF:
+      # - ./nginx/modsecurity:/etc/nginx/modsecurity:ro
+    networks:
+      - frontend
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:80/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
   # ── Redis ──────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
@@ -54,13 +101,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: dujiao-next:latest
+    image: dujiao-next-api:latest
     restart: unless-stopped
     depends_on:
       redis:
         condition: service_healthy
-    ports:
-      - "${DJ_PORT:-8080}:8080"
+    # No public ports — accessed only via nginx
+    expose:
+      - "8080"
     # CIS 5.2 - 限制容器资源
     deploy:
       resources:
@@ -89,6 +137,66 @@ services:
     # PCI-DSS 2.2.1 - 禁止提权
     privileged: false
 
+  # ── User Frontend ──────────────────────────────────────────
+  dujiao-user:
+    build:
+      context: ./user
+      dockerfile: Dockerfile
+    image: dujiao-next-user:latest
+    restart: unless-stopped
+    # No public ports — accessed only via nginx
+    expose:
+      - "80"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+      - /var/cache/nginx:size=64M
+      - /var/log/nginx:size=64M
+      - /var/run:size=1M
+
+  # ── Admin Frontend ─────────────────────────────────────────
+  dujiao-admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    image: dujiao-next-admin:latest
+    restart: unless-stopped
+    # No public ports — accessed only via nginx
+    expose:
+      - "80"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+      - /var/cache/nginx:size=64M
+      - /var/log/nginx:size=64M
+      - /var/run:size=1M
+
 volumes:
   redis_data:
   dujiao_db:
@@ -96,5 +204,9 @@ volumes:
   dujiao_logs:
 
 networks:
+  # External-facing network (nginx ↔ frontends)
+  frontend:
+    driver: bridge
+  # Internal network (nginx ↔ api ↔ redis)
   internal:
     driver: bridge

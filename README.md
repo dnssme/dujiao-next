@@ -1,25 +1,23 @@
-# Dujiao-Next API
+# Dujiao-Next
 
-Dujiao-Next API 是 Dujiao-Next 生态系统的后端 API 服务。它为电子商务平台提供完整的公共 API、用户认证、订单管理、支付集成和管理后台接口。
+Dujiao-Next 是一个开源的自动发卡/数字商品交易平台，包含 **API 后端**、**用户前台** 和 **管理后台** 三个部分。
 
 ## 🚀 项目概述
 
-Dujiao-Next 是一个开源的自动发卡/数字商品交易平台后端，支持多种支付渠道、多语言、自动/手动发货、钱包系统、推广返利等功能。适用于数字商品（卡密、充值码、软件授权等）的在线销售场景。
+支持多种支付渠道、多语言、自动/手动发货、钱包系统、推广返利等功能。适用于数字商品（卡密、充值码、软件授权等）的在线销售场景。
 
 ## 📋 技术栈
 
-| 技术 | 说明 |
-|------|------|
-| **Go** | 主要开发语言 |
-| **Gin** | HTTP Web 框架 |
-| **GORM** | ORM 数据库操作 |
-| **SQLite / PostgreSQL** | 数据库支持 |
-| **Redis** | 缓存与消息队列 |
-| **Asynq** | 异步任务队列（基于 Redis） |
-| **Casbin** | RBAC 权限管理 |
-| **JWT** | 用户/管理员认证 |
-| **Zap** | 结构化日志 |
-| **Viper** | 配置管理 |
+| 组件 | 技术 | 说明 |
+|------|------|------|
+| **API 后端** | Go + Gin + GORM | JSON REST API |
+| **用户前台** | Vue 3 + Vite + Tailwind | 用户购物界面 |
+| **管理后台** | Vue 3 + Vite + shadcn-vue | 管理面板 |
+| **数据库** | SQLite / PostgreSQL | 数据存储 |
+| **缓存** | Redis | 缓存 + 消息队列 |
+| **权限** | Casbin | RBAC 权限管理 |
+| **认证** | JWT | 双 Token 系统 |
+| **反向代理** | NGINX + OWASP CRS | WAF + TLS 终止 |
 
 ## 🏗️ 项目架构
 
@@ -28,26 +26,33 @@ dujiao-next/
 ├── cmd/
 │   ├── server/main.go         # API 服务入口
 │   └── seed/main.go           # 数据库种子数据工具
-├── internal/
+├── internal/                   # Go API 业务逻辑
 │   ├── app/                   # 应用启动与生命周期管理
 │   ├── authz/                 # RBAC 授权（Casbin）
 │   ├── cache/                 # Redis 缓存层
 │   ├── config/                # 配置文件加载与解析
-│   ├── constants/             # 全局常量定义
 │   ├── http/                  # HTTP 处理器（管理端/用户端/公共）
-│   ├── i18n/                  # 国际化（zh-CN, zh-TW, en-US）
-│   ├── logger/                # 结构化日志（Zap + 日志轮转）
 │   ├── models/                # 数据模型（GORM）
 │   ├── payment/               # 支付集成（7 种支付方式）
-│   ├── provider/              # 依赖注入容器
-│   ├── queue/                 # 异步任务定义
 │   ├── repository/            # 数据访问层
 │   ├── router/                # 路由与中间件
 │   ├── service/               # 业务逻辑层
 │   └── worker/                # 后台任务处理器
-├── config.yml.example         # 配置文件模板
-├── Dockerfile                 # Docker 构建文件
-└── .goreleaser.yaml           # 多平台发布配置
+├── user/                       # 用户前台（Vue 3 + Tailwind）
+│   ├── src/                   # 前台源代码
+│   └── Dockerfile             # 前台 Docker 构建（CIS 加固）
+├── admin/                      # 管理后台（Vue 3 + shadcn-vue）
+│   ├── src/                   # 后台源代码
+│   └── Dockerfile             # 后台 Docker 构建（CIS 加固）
+├── nginx/                      # NGINX 反向代理
+│   ├── nginx.conf             # 反代配置（安全头 + 限流）
+│   └── modsecurity/           # OWASP CRS WAF 规则
+├── config.yml.example          # API 配置模板
+├── .env.example                # 环境变量模板
+├── Dockerfile                  # API Docker 构建（CIS 加固）
+├── docker-compose.yml          # 全栈 Docker Compose 编排
+├── SECURITY.md                 # 安全审查报告
+└── DEPLOYMENT.md               # 部署指南
 ```
 
 ## ✨ 核心功能
@@ -160,25 +165,33 @@ docker run -d \
 
 ### Docker Compose 部署（推荐）
 
-项目提供了符合 CIS Docker Benchmark 和 PCI-DSS 安全基准的 `docker-compose.yml`：
+项目提供了符合 CIS Docker Benchmark 和 PCI-DSS 安全基准的全栈 `docker-compose.yml`：
 
 ```bash
 # 1. 准备配置文件
 cp config.yml.example config.yml
-vim config.yml  # 修改 JWT secret、数据库等配置
+cp .env.example .env
 
-# 2. 生成 Redis 密码并写入 .env（需与 config.yml 中 redis.password 一致）
-echo "DJ_REDIS_PASSWORD=$(openssl rand -base64 32)" >> .env
+# 2. 修改配置
+vim config.yml  # 修改 JWT secret、数据库、Redis 密码等
+vim .env        # 修改 Redis 密码（需与 config.yml 一致）
 
-# 3. 启动服务
+# 3. 启动全栈（API + User + Admin + NGINX + Redis）
 docker compose up -d
 
 # 4. 查看日志（首次启动时管理员凭据会显示在这里）
 docker compose logs -f dujiao-api
 
-# 5. 停止服务
+# 5. 访问
+# 用户前台: http://localhost
+# 管理后台: http://localhost:81
+# API:      http://localhost/api/v1/public/config
+
+# 6. 停止服务
 docker compose down
 ```
+
+> 📖 详细部署教程请参见 [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## ⚙️ 配置说明
 
