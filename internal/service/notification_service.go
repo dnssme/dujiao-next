@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"regexp"
@@ -311,7 +311,7 @@ func buildNotificationDedupeKey(payload queue.NotificationDispatchPayload) strin
 		signature.WriteString(strings.TrimSpace(fmt.Sprintf("%v", payload.Data[key])))
 		signature.WriteString(";")
 	}
-	hash := sha1.Sum([]byte(signature.String()))
+	hash := sha256.Sum256([]byte(signature.String()))
 	return "notification:dedupe:" + hex.EncodeToString(hash[:])
 }
 

@@ -498,7 +498,8 @@ func postGateway(ctx context.Context, gatewayURL string, params map[string]strin
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: defaultTimeout}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: http request failed", ErrRequestFailed)
 	}
