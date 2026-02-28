@@ -95,9 +95,9 @@ func (h *Handler) HandleEpusdtCallback(c *gin.Context) bool {
 
 	// 构建回调输入
 	amount := models.Money{}
-	amountFloat := data.GetAmount()
-	if amountFloat > 0 {
-		amount = models.NewMoneyFromDecimal(decimal.NewFromFloat(amountFloat))
+	amountDecimal := data.GetAmountDecimal()
+	if amountDecimal.GreaterThan(decimal.Zero) {
+		amount = models.NewMoneyFromDecimal(amountDecimal)
 	}
 
 	now := time.Now()

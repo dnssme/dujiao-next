@@ -3,6 +3,7 @@ package epusdt
 import (
 	"context"
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,8 @@ import (
 	"time"
 
 	"github.com/dujiao-next/internal/constants"
+
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -121,6 +124,44 @@ func (c *CallbackData) GetActualAmount() float64 {
 	return 0
 }
 
+// GetAmountDecimal 获取金额（decimal.Decimal），避免 float64 精度丢失。
+func (c *CallbackData) GetAmountDecimal() decimal.Decimal {
+	switch v := c.Amount.(type) {
+	case string:
+		d, err := decimal.NewFromString(v)
+		if err == nil {
+			return d
+		}
+	case float64:
+		return decimal.NewFromFloat(v)
+	case json.Number:
+		d, err := decimal.NewFromString(v.String())
+		if err == nil {
+			return d
+		}
+	}
+	return decimal.Zero
+}
+
+// GetActualAmountDecimal 获取实际金额（decimal.Decimal），避免 float64 精度丢失。
+func (c *CallbackData) GetActualAmountDecimal() decimal.Decimal {
+	switch v := c.ActualAmount.(type) {
+	case string:
+		d, err := decimal.NewFromString(v)
+		if err == nil {
+			return d
+		}
+	case float64:
+		return decimal.NewFromFloat(v)
+	case json.Number:
+		d, err := decimal.NewFromString(v.String())
+		if err == nil {
+			return d
+		}
+	}
+	return decimal.Zero
+}
+
 // GetAmountRaw 获取金额的原始值，用于签名验证，避免 float64 精度丢失。
 func (c *CallbackData) GetAmountRaw() interface{} {
 	return c.Amount
@@ -201,15 +242,15 @@ func CreatePayment(ctx context.Context, cfg *Config, input CreateInput) (*Create
 		returnURL = cfg.ReturnURL
 	}
 
-	// 将 amount 从字符串转换为 float64
-	amountFloat, err := strconv.ParseFloat(input.Amount, 64)
-	if err != nil {
+	// decimal で金額を検証し、精度の損失を回避するため json.Number として送信する。
+	amountDecimal, err := decimal.NewFromString(input.Amount)
+	if err != nil || amountDecimal.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("%w: invalid amount", ErrConfigInvalid)
 	}
 
 	params := map[string]interface{}{
 		"order_id":     input.OrderNo,
-		"amount":       amountFloat,
+		"amount":       json.Number(amountDecimal.String()),
 		"notify_url":   notifyURL,
 		"redirect_url": returnURL,
 		"trade_type":   cfg.TradeType,
@@ -285,7 +326,8 @@ func VerifyCallback(cfg *Config, data *CallbackData) error {
 	}
 
 	expected := Sign(params, cfg.AuthToken)
-	if !strings.EqualFold(expected, data.Signature) {
+	actual := strings.ToLower(strings.TrimSpace(data.Signature))
+	if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 		return ErrSignatureInvalid
 	}
 	return nil

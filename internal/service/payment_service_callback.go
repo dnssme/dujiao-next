@@ -112,6 +112,15 @@ func (s *PaymentService) HandleCallback(input PaymentCallbackInput) (*models.Pay
 		)
 		return s.updateCallbackMeta(payment, status, input)
 	}
+	// PCI-DSS 6.5.6 — 支付状态机防护：拒绝非法状态迁移（如 expired → failed），
+	// 仅允许预定义的合法转换路径（例如 expired/failed → success 以应对网关延迟通知）。
+	if !isPaymentTransitionAllowed(payment.Status, status) {
+		log.Warnw("payment_callback_invalid_transition",
+			"current_status", payment.Status,
+			"target_status", status,
+		)
+		return s.updateCallbackMeta(payment, payment.Status, input)
+	}
 
 	previousStatus := payment.Status
 	now := time.Now()

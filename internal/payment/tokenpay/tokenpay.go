@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -253,7 +254,8 @@ func VerifyCallback(data *CallbackData, notifySecret string) error {
 		return ErrConfigInvalid
 	}
 	expected := SignPayload(data.Raw, notifySecret)
-	if !strings.EqualFold(expected, strings.TrimSpace(data.Signature)) {
+	actual := strings.ToLower(strings.TrimSpace(data.Signature))
+	if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 		return ErrSignatureInvalid
 	}
 	return nil

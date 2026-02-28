@@ -95,7 +95,7 @@ cors:
     - Cache-Control
     - X-Requested-With
     - X-CSRF-Token
-  allow_credentials: true
+  allow_credentials: false
   max_age: 600
 
 security:
