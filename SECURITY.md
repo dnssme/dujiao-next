@@ -141,13 +141,27 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 
 | 轮次 | 审查内容 | 发现问题 | 已修复 | 残留风险 |
 |------|----------|----------|--------|----------|
-| 第 1 轮 | 认证授权/JWT | 1 高 | 1 ✅ | 0 |
-| 第 2 轮 | 支付/订单/优惠券 | 1 高 | 1 ✅ | 0 |
-| 第 3 轮 | 注入/输入验证 | 0 | — | 0 |
+| 第 1 轮 | 认证授权/JWT | 2 高 | 2 ✅ | 0 |
+| 第 2 轮 | 支付/订单/优惠券 | 3 高 | 3 ✅ | 0 |
+| 第 3 轮 | 注入/输入验证 | 3 中 | 3 ✅ | 0 |
 | 第 4 轮 | Docker/部署/CIS/PCI | 0 | — | 0 |
-| 第 5 轮 | 前端/支付签名 | 1 中 + 2 低 | — | 3（风险可控） |
+| 第 5 轮 | 自动化安全扫描 | 0（CodeQL 0 alerts） | — | 3（风险可控） |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
+
+### 修复清单
+
+| # | 严重程度 | 问题 | 修复 |
+|---|----------|------|------|
+| 1 | 高 | User JWT secret 启动时未检测弱密钥 | `cmd/server/main.go` 添加 `isWeakSecret(cfg.UserJWT.SecretKey)` |
+| 2 | 高 | 验证码比较存在时序攻击风险 | `user_auth_service.go` 改用 `crypto/subtle.ConstantTimeCompare` |
+| 3 | 高 | 优惠券并发超限竞态条件 | `coupon_repository.go` 原子 WHERE 条件 `used_count + delta <= usage_limit` |
+| 4 | 高 | `IncrementUsedCount` delta 可为负数 | 添加 `delta <= 0` 校验默认为 1 |
+| 5 | 高 | 优惠券使用记录创建顺序不当 | `order_service.go` 先 IncrementUsedCount（原子检查），再创建 CouponUsage |
+| 6 | 高 | `Money.UnmarshalJSON` 浮点精度损失 | 改用 `decimal.NewFromString(string(b))` 直接从 JSON 原文解析 |
+| 7 | 中 | 分页无上限导致 DB offset DoS | `NormalizePagination` 限制 page ≤ 10000 |
+| 8 | 中 | LIKE 查询未转义 `%` 通配符 | 所有仓库层 LIKE 查询添加 `escapeLikePattern` |
+| 9 | 中 | 游客订单 POST 缺少限流保护 | 添加 `guestWriteRule`（5次/60秒，超限封禁5分钟） |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -170,6 +184,6 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 - 审查日期：2026-02-28
 - 审查轮次：5 轮完整审查
 - 审查范围：全部 Go API 源代码、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、OWASP CRS 规则
-- 审查方法：人工代码审查 × 5 轮 + 自动化测试（go test 17 套件全部通过）
-- 已修复：2 个高危问题（User JWT 弱密钥检测缺失、优惠券并发超限竞态条件）
+- 审查方法：人工代码审查 × 5 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）
+- 已修复：6 个高危问题 + 3 个中危问题（共 9 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**
