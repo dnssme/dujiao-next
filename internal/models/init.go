@@ -15,7 +15,9 @@ import (
 // InitDefaultAdmin 初始化默认管理员账号
 func InitDefaultAdmin(username, password string) error {
 	var count int64
-	DB.Model(&Admin{}).Count(&count)
+	if err := DB.Model(&Admin{}).Count(&count).Error; err != nil {
+		return fmt.Errorf("count admins failed: %w", err)
+	}
 
 	// 如果已有管理员，确保默认 admin 拥有超级管理员权限
 	if count > 0 {
