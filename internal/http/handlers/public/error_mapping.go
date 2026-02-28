@@ -137,6 +137,7 @@ var paymentCaptureErrorRules = []mappedHandlerError{
 	{target: service.ErrPaymentGatewayResponseInvalid, code: response.CodeBadRequest, key: "error.payment_gateway_response_invalid"},
 	{target: service.ErrPaymentStatusInvalid, code: response.CodeBadRequest, key: "error.payment_status_invalid"},
 	{target: service.ErrPaymentAmountMismatch, code: response.CodeBadRequest, key: "error.payment_amount_mismatch"},
+	{target: service.ErrPaymentAmountExceedsLimit, code: response.CodeBadRequest, key: "error.payment_amount_exceeds_limit"},
 	{target: service.ErrPaymentCurrencyMismatch, code: response.CodeBadRequest, key: "error.payment_currency_mismatch"},
 	{target: service.ErrOrderNotFound, code: response.CodeNotFound, key: "error.order_not_found"},
 }

@@ -98,7 +98,7 @@ func (s *PaymentService) capturePaypalPayment(input CapturePaymentInput, payment
 	amount := models.Money{}
 	if strings.TrimSpace(captureResult.Amount) != "" {
 		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(captureResult.Amount))
-		if parseErr == nil {
+		if parseErr == nil && parsed.IsPositive() {
 			amount = models.NewMoneyFromDecimal(parsed)
 		}
 	}
@@ -147,7 +147,7 @@ func (s *PaymentService) captureWechatPayment(input CapturePaymentInput, payment
 	amount := models.Money{}
 	if strings.TrimSpace(queryResult.Amount) != "" {
 		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(queryResult.Amount))
-		if parseErr == nil {
+		if parseErr == nil && parsed.IsPositive() {
 			amount = models.NewMoneyFromDecimal(parsed)
 		}
 	}
@@ -194,7 +194,7 @@ func (s *PaymentService) captureStripePayment(input CapturePaymentInput, payment
 	amount := models.Money{}
 	if strings.TrimSpace(queryResult.Amount) != "" {
 		parsed, parseErr := decimal.NewFromString(strings.TrimSpace(queryResult.Amount))
-		if parseErr == nil {
+		if parseErr == nil && parsed.IsPositive() {
 			amount = models.NewMoneyFromDecimal(parsed)
 		}
 	}

@@ -98,3 +98,35 @@ func TestJWTAuthMiddlewareMissingSecret(t *testing.T) {
 		t.Fatalf("status_code want 401 got %d", resp.StatusCode)
 	}
 }
+
+func TestSecurityHeadersMiddleware(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(SecurityHeadersMiddleware())
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status want 200 got %d", w.Code)
+	}
+	checks := map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":       "DENY",
+		"Referrer-Policy":       "strict-origin-when-cross-origin",
+		"Cache-Control":         "no-store",
+	}
+	for header, want := range checks {
+		got := w.Header().Get(header)
+		if got != want {
+			t.Errorf("header %s want %q got %q", header, want, got)
+		}
+	}
+	if w.Header().Get("Permissions-Policy") == "" {
+		t.Error("Permissions-Policy header should be set")
+	}
+}

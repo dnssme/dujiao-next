@@ -28,6 +28,21 @@ const adminIsSuperContextKey = "admin_is_super"
 const authHeaderKey = "Authorization"
 const authSchemeBearer = "Bearer"
 
+// SecurityHeadersMiddleware 设置安全响应头 — CIS 5.1 / PCI-DSS 6.5.7
+// 注: Strict-Transport-Security 应由前置 NGINX/反向代理在 TLS 终止后添加，
+// API 层仅设置不依赖传输层的安全头。
+func SecurityHeadersMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h := c.Writer.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		h.Set("Cache-Control", "no-store")
+		c.Next()
+	}
+}
+
 // CORSMiddleware 跨域中间件
 func CORSMiddleware(cfg config.CORSConfig) gin.HandlerFunc {
 	allowedOrigins := cfg.AllowedOrigins

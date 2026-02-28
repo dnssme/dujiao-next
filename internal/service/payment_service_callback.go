@@ -432,8 +432,20 @@ func (s *PaymentService) markOrderPaid(tx *gorm.DB, order *models.Order, now tim
 		"online_paid_amount": models.NewMoneyFromDecimal(onlineAmount),
 		"updated_at":         now,
 	}
-	if err := orderRepo.UpdateStatus(order.ID, constants.OrderStatusPaid, orderUpdates); err != nil {
+	// PCI-DSS 6.5.6 — 使用条件更新防止并发回调导致的 TOCTOU 竞态：
+	// 仅当订单当前处于 pending_payment 状态时才允许转入 paid。
+	affected, err := orderRepo.UpdateStatusConditional(
+		order.ID,
+		[]string{constants.OrderStatusPendingPayment},
+		constants.OrderStatusPaid,
+		orderUpdates,
+	)
+	if err != nil {
 		return ErrOrderUpdateFailed
+	}
+	if affected == 0 {
+		// 已被另一个并发事务处理过 — 幂等退出。
+		return nil
 	}
 	order.Status = constants.OrderStatusPaid
 	order.PaidAt = &now

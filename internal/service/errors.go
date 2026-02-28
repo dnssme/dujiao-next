@@ -102,6 +102,7 @@ var (
 	ErrPaymentChannelConfigInvalid     = errors.New("payment channel config invalid")
 	ErrPaymentGatewayRequestFailed     = errors.New("payment gateway request failed")
 	ErrPaymentGatewayResponseInvalid   = errors.New("payment gateway response invalid")
+	ErrPaymentAmountExceedsLimit       = errors.New("payment amount exceeds limit")
 	ErrWalletInvalidAmount             = errors.New("wallet invalid amount")
 	ErrWalletInsufficientBalance       = errors.New("wallet insufficient balance")
 	ErrWalletAccountNotFound           = errors.New("wallet account not found")
