@@ -149,7 +149,7 @@ func (r *GormCouponRepository) List(filter CouponListFilter) ([]models.Coupon, i
 
 // IncrementUsedCount 增加优惠券使用次数（原子检查 usage_limit 防止超限）
 func (r *GormCouponRepository) IncrementUsedCount(id uint, delta int) error {
-	if delta == 0 {
+	if delta <= 0 {
 		delta = 1
 	}
 	result := r.db.Model(&models.Coupon{}).
