@@ -189,7 +189,7 @@ func resolveLogFilePath(options Options) (string, error) {
 		dir = filepath.Join(workDir, defaultLogDirName)
 	}
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return "", fmt.Errorf("create log dir failed: %w", err)
 	}
 
@@ -207,7 +207,7 @@ func resolveLogFilePath(options Options) (string, error) {
 }
 
 func ensureLogFileWritable(logFilePath string) error {
-	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("open log file failed: %w", err)
 	}
