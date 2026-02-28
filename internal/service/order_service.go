@@ -1366,12 +1366,12 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 		if idx, ok := indexMap[key]; ok {
 			merged[idx].Quantity += item.Quantity
 			if merged[idx].Quantity > maxItemQuantity {
-				return nil, ErrInvalidOrderItem
+				return nil, ErrOrderItemQuantityExceeded
 			}
 			continue
 		}
 		if item.Quantity > maxItemQuantity {
-			return nil, ErrInvalidOrderItem
+			return nil, ErrOrderItemQuantityExceeded
 		}
 		indexMap[key] = len(merged)
 		merged = append(merged, CreateOrderItem{

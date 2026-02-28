@@ -144,8 +144,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 1 轮 | 认证授权/JWT | 2 高 | 2 ✅ | 0 |
 | 第 2 轮 | 支付/订单/优惠券 | 3 高 | 3 ✅ | 0 |
 | 第 3 轮 | 注入/输入验证 | 3 中 | 3 ✅ | 0 |
-| 第 4 轮 | Docker/部署/CIS/PCI | 0 | — | 0 |
-| 第 5 轮 | 自动化安全扫描 | 0（CodeQL 0 alerts） | — | 3（风险可控） |
+| 第 4 轮 | 服务层逻辑/边界 | 5 中-高 | 5 ✅ | 0 |
+| 第 5 轮 | 最终全面复查+CodeQL | 0（CodeQL 0 alerts） | — | 3（风险可控） |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -162,6 +162,11 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 7 | 中 | 分页无上限导致 DB offset DoS | `NormalizePagination` 限制 page ≤ 10000 |
 | 8 | 中 | LIKE 查询未转义 `%` 通配符 | 所有仓库层 LIKE 查询添加 `escapeLikePattern` |
 | 9 | 中 | 游客订单 POST 缺少限流保护 | 添加 `guestWriteRule`（5次/60秒，超限封禁5分钟） |
+| 10 | 中 | 百分比优惠券缺少 >100 校验（纵深防御） | `coupon_service.go` calculateDiscount 添加 percent > 100 校验 |
+| 11 | 中 | 订单商品数量无上限可导致溢出 | `order_service.go` mergeCreateOrderItems 添加 maxItemQuantity=10000 |
+| 12 | 中 | 提现查询 SELECT FOR UPDATE 缺少 Model() | `affiliate_repository.go` ListCommissionsByWithdrawIDForUpdate 添加 Model() |
+| 13 | 中 | Worker 订单获取失败不重试导致丢失 | `asynq_worker.go` ErrOrderFetchFailed 改为返回 error 触发重试 |
+| 14 | 中 | 礼品卡随机编码 fallback 生成确定性值 | `gift_card_service.go` randomHex 失败改为 panic 而非确定性 fallback |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -185,5 +190,5 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 - 审查轮次：5 轮完整审查
 - 审查范围：全部 Go API 源代码、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、OWASP CRS 规则
 - 审查方法：人工代码审查 × 5 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）
-- 已修复：6 个高危问题 + 3 个中危问题（共 9 项）
+- 已修复：6 个高危问题 + 8 个中危问题（共 14 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**

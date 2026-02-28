@@ -70,6 +70,7 @@ var (
 	ErrProductSKURequired              = errors.New("product sku required")
 	ErrProductSKUInvalid               = errors.New("product sku invalid")
 	ErrInvalidOrderItem                = errors.New("invalid order item")
+	ErrOrderItemQuantityExceeded       = errors.New("order item quantity exceeded")
 	ErrInvalidOrderAmount              = errors.New("invalid order amount")
 	ErrOrderCurrencyMismatch           = errors.New("order currency mismatch")
 	ErrOrderNotFound                   = errors.New("order not found")
