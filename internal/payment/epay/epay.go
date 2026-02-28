@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -271,7 +272,8 @@ func VerifyCallback(cfg *Config, form map[string][]string) error {
 		return verifyRSA(content, sign, cfg.PublicKey)
 	default:
 		expected := signMD5(content + cfg.MerchantKey)
-		if !strings.EqualFold(expected, sign) {
+		actual := strings.ToLower(strings.TrimSpace(sign))
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 			return ErrSignatureInvalid
 		}
 	}
@@ -395,7 +397,7 @@ func postForm(ctx context.Context, endpoint string, params map[string]string) ([
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, ErrRequestFailed
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err
 	}

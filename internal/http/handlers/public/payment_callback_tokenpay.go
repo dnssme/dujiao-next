@@ -17,7 +17,7 @@ import (
 func (h *Handler) HandleTokenPayCallback(c *gin.Context) bool {
 	log := requestLog(c)
 
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		return false
 	}

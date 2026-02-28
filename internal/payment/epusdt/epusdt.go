@@ -420,7 +420,7 @@ func postJSON(ctx context.Context, endpoint string, params map[string]interface{
 		return nil, fmt.Errorf("http status %d", resp.StatusCode)
 	}
 
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
 
 // IsSupportedChannelType 判断是否支持的渠道类型

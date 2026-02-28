@@ -21,7 +21,7 @@ func (h *Handler) PaypalWebhook(c *gin.Context) {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		log.Warnw("paypal_webhook_body_read_failed", "channel_id", query.ChannelID, "error", err)
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
@@ -101,7 +101,7 @@ func (h *Handler) StripeWebhook(c *gin.Context) {
 	var query StripeWebhookQuery
 	_ = c.ShouldBindQuery(&query)
 
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		log.Warnw("stripe_webhook_body_read_failed", "channel_id", query.ChannelID, "error", err)
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)

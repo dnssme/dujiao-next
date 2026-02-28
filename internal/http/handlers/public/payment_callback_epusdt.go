@@ -20,8 +20,8 @@ import (
 func (h *Handler) HandleEpusdtCallback(c *gin.Context) bool {
 	log := requestLog(c)
 
-	// 读取请求体
-	body, err := io.ReadAll(c.Request.Body)
+	// 读取请求体（限制最大 1MB，防止 DoS）
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		return false
 	}

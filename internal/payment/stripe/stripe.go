@@ -632,7 +632,7 @@ func doFormRequest(ctx context.Context, cfg *Config, method, path string, form u
 		return nil, 0, fmt.Errorf("%w: %v", ErrRequestFailed, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("%w: read response failed", ErrResponseInvalid)
 	}
@@ -655,7 +655,7 @@ func doJSONRequest(ctx context.Context, cfg *Config, method, path string) ([]byt
 		return nil, 0, fmt.Errorf("%w: %v", ErrRequestFailed, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("%w: read response failed", ErrResponseInvalid)
 	}
