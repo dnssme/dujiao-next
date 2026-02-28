@@ -29,7 +29,7 @@ func NewCouponService(couponRepo repository.CouponRepository, usageRepo reposito
 // ApplyCoupon 计算优惠券折扣金额
 func (s *CouponService) ApplyCoupon(subtotal models.Money, code string, userID uint, items []models.OrderItem) (models.Money, *models.Coupon, error) {
 	trimmed := strings.TrimSpace(code)
-	if trimmed == "" {
+	if trimmed == "" || len(trimmed) > 128 {
 		return models.Money{}, nil, ErrCouponInvalid
 	}
 

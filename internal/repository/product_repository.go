@@ -79,7 +79,7 @@ func (r *GormProductRepository) List(filter ProductListFilter) ([]models.Product
 		query = query.Where("fulfillment_type = ?", fulfillmentType)
 	}
 	if search := strings.TrimSpace(filter.Search); search != "" {
-		like := "%" + search + "%"
+		like := "%" + escapeLikePattern(search) + "%"
 		condition, argCount := buildLocalizedLikeCondition(r.db, []string{"slug"}, []string{"title_json", "description_json"})
 		query = query.Where(condition, repeatLikeArgs(like, argCount)...)
 	}
