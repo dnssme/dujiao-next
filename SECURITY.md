@@ -194,7 +194,6 @@
    - 配置具体的 CORS 允许域名，不使用 `*`
 
 2. **可选加固**
-   - 启用 Redis 密码认证（`docker-compose.yml` 已配置）
    - 定期轮换 JWT Secret
    - 添加 IP 白名单限制管理接口访问
 
