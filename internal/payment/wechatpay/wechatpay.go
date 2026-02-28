@@ -491,7 +491,7 @@ func parseAPIResult(result *core.APIResult) (map[string]interface{}, error) {
 	}
 	defer result.Response.Body.Close()
 
-	respBody, readErr := io.ReadAll(result.Response.Body)
+	respBody, readErr := io.ReadAll(io.LimitReader(result.Response.Body, 1<<20))
 	if readErr != nil {
 		return nil, fmt.Errorf("%w: read response failed", ErrResponseInvalid)
 	}
