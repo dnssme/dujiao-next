@@ -42,7 +42,7 @@ func (r *GormPostRepository) List(filter PostListFilter) ([]models.Post, int64, 
 		query = query.Where("type = ?", filter.Type)
 	}
 	if search := strings.TrimSpace(filter.Search); search != "" {
-		like := "%" + search + "%"
+		like := "%" + escapeLikePattern(search) + "%"
 		condition, argCount := buildLocalizedLikeCondition(r.db, []string{"slug"}, []string{"title_json"})
 		query = query.Where(condition, repeatLikeArgs(like, argCount)...)
 	}

@@ -48,7 +48,7 @@ func (r *GormBannerRepository) List(filter BannerListFilter) ([]models.Banner, i
 		query = query.Where("(end_at IS NULL OR end_at >= ?)", now)
 	}
 	if search := strings.TrimSpace(filter.Search); search != "" {
-		like := "%" + search + "%"
+		like := "%" + escapeLikePattern(search) + "%"
 		condition, argCount := buildLocalizedLikeCondition(r.db, []string{"name"}, []string{"title_json"})
 		query = query.Where(condition, repeatLikeArgs(like, argCount)...)
 	}

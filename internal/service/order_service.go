@@ -852,6 +852,9 @@ func (s *OrderService) cancelOrderWithChildren(order *models.Order, rollbackCoup
 			return ErrOrderUpdateFailed
 		}
 		for _, child := range order.Children {
+			if child.Status == constants.OrderStatusCompleted || child.Status == constants.OrderStatusDelivered {
+				continue
+			}
 			if err := orderRepo.UpdateStatus(child.ID, constants.OrderStatusCanceled, updates); err != nil {
 				return ErrOrderUpdateFailed
 			}
