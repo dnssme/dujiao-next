@@ -114,6 +114,17 @@ func KeyByIP(c *gin.Context) string {
 	return c.ClientIP()
 }
 
+// KeyByIPAndQueryParam 使用 IP + Query 参数作为限流 key
+func KeyByIPAndQueryParam(param string) RateLimitKeyFunc {
+	return func(c *gin.Context) string {
+		value := strings.ToLower(strings.TrimSpace(c.Query(param)))
+		if value == "" {
+			return c.ClientIP()
+		}
+		return fmt.Sprintf("%s|%s", value, c.ClientIP())
+	}
+}
+
 // KeyByIPAndJSONField 使用 IP + JSON 字段作为限流 key
 func KeyByIPAndJSONField(field string) RateLimitKeyFunc {
 	return func(c *gin.Context) string {

@@ -50,6 +50,14 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		MessageKey:    "error.login_too_many",
 	}
 
+	guestQueryRule := RateLimitRule{
+		Prefix:        fmt.Sprintf("%s:rate:guest_query", redisPrefix),
+		WindowSeconds: 300,
+		MaxRequests:   20,
+		BlockSeconds:  600,
+		MessageKey:    "error.rate_limited",
+	}
+
 	// 中间件
 	r.Use(gin.Recovery())
 	r.Use(RequestIDMiddleware())
@@ -81,12 +89,12 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		{
 			guest.POST("/orders", publicHandler.CreateGuestOrder)
 			guest.POST("/orders/preview", publicHandler.PreviewGuestOrder)
-			guest.GET("/orders", publicHandler.ListGuestOrders)
-			guest.GET("/orders/:id", publicHandler.GetGuestOrder)
-			guest.GET("/orders/by-order-no/:order_no", publicHandler.GetGuestOrderByOrderNo)
+			guest.GET("/orders", RateLimitMiddleware(redisClient, guestQueryRule, KeyByIPAndQueryParam("email")), publicHandler.ListGuestOrders)
+			guest.GET("/orders/:id", RateLimitMiddleware(redisClient, guestQueryRule, KeyByIPAndQueryParam("email")), publicHandler.GetGuestOrder)
+			guest.GET("/orders/by-order-no/:order_no", RateLimitMiddleware(redisClient, guestQueryRule, KeyByIPAndQueryParam("email")), publicHandler.GetGuestOrderByOrderNo)
 			guest.POST("/payments", publicHandler.CreateGuestPayment)
 			guest.POST("/payments/:id/capture", publicHandler.CaptureGuestPayment)
-			guest.GET("/payments/latest", publicHandler.GetGuestLatestPayment)
+			guest.GET("/payments/latest", RateLimitMiddleware(redisClient, guestQueryRule, KeyByIPAndQueryParam("email")), publicHandler.GetGuestLatestPayment)
 		}
 
 		// 用户认证接口

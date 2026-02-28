@@ -195,28 +195,61 @@ API 容器遵循 CIS Docker Benchmark 和 PCI-DSS 安全标准：
 
 ## User 前端部署
 
-User 前端是 Vue 3 SPA 应用，构建后为纯静态文件。
+User 前端是 Vue 3 + Vite + Tailwind SPA 应用，构建后生成纯静态文件（HTML/JS/CSS），
+部署到 NGINX 静态目录即可。**不需要 Node.js 运行时。**
 
-### 方法 A: 直接构建部署（推荐）
+### 前置条件
+
+| 组件 | 版本 | 说明 |
+|------|------|------|
+| Node.js | 20.x+ | 仅构建时需要 |
+| npm | 10.x+ | 仅构建时需要 |
+
+### 方法 A: 在服务器上构建部署
 
 ```bash
 # 进入前端目录
 cd user
 
-# 安装依赖
-npm ci
+# 安装依赖（--ignore-scripts 防止安装后脚本执行，安全构建）
+npm ci --ignore-scripts
 
-# 配置 API 地址（可选，默认使用同域名）
-# export VITE_API_BASE_URL=https://your-domain.com
+# 配置 API 地址
+# 如果前后端在同一域名下（推荐），不需要设置此变量
+# 如果 API 在不同域名（如 api.your-domain.com），取消注释：
+# export VITE_API_BASE_URL=https://api.your-domain.com
 
-# 构建
+# 构建生产版本
 npm run build
 
-# 部署到 NGINX 静态目录
-cp -r dist/* /var/www/user/dist/
+# 创建部署目录
+sudo mkdir -p /var/www/user/dist
+
+# 部署静态文件
+sudo cp -r dist/* /var/www/user/dist/
+
+# 设置安全文件权限
+sudo chown -R www-data:www-data /var/www/user/dist
+sudo find /var/www/user/dist -type d -exec chmod 755 {} \;
+sudo find /var/www/user/dist -type f -exec chmod 644 {} \;
 ```
 
-### 方法 B: Docker 构建后提取文件
+### 方法 B: 在本地构建后上传
+
+```bash
+# 本地构建
+cd user
+npm ci --ignore-scripts
+npm run build
+
+# 上传到服务器
+scp -r dist/* your-server:/var/www/user/dist/
+
+# 在服务器上设置权限
+ssh your-server 'sudo chown -R www-data:www-data /var/www/user/dist && sudo find /var/www/user/dist -type d -exec chmod 755 {} \; && sudo find /var/www/user/dist -type f -exec chmod 644 {} \;'
+```
+
+### 方法 C: Docker 构建后提取文件
 
 ```bash
 # 构建镜像
@@ -225,67 +258,119 @@ docker build -t dujiao-user:latest .
 
 # 提取静态文件
 docker create --name tmp-user dujiao-user:latest
-docker cp tmp-user:/usr/share/nginx/html /var/www/user/dist
+docker cp tmp-user:/usr/share/nginx/html/. /var/www/user/dist/
 docker rm tmp-user
+
+# 设置权限
+sudo chown -R www-data:www-data /var/www/user/dist
+sudo find /var/www/user/dist -type d -exec chmod 755 {} \;
+sudo find /var/www/user/dist -type f -exec chmod 644 {} \;
 ```
 
-### NGINX 配置
+### 构建产物结构
 
-User 前端作为 SPA 应用，NGINX 需要配置回退到 `index.html`：
-
-```nginx
-root /var/www/user/dist;
-index index.html;
-
-location / {
-    try_files $uri $uri/ /index.html;
-}
-
-location ^~ /assets/ {
-    expires 1y;
-    add_header Cache-Control "public, max-age=31536000, immutable" always;
-}
+```
+/var/www/user/dist/
+├── index.html              # SPA 入口
+├── assets/
+│   ├── index-a1b2c3d4.js   # JS 文件（带 hash，长缓存）
+│   ├── index-e5f6g7h8.css  # CSS 文件（带 hash，长缓存）
+│   └── ...
+└── favicon.ico             # 图标
 ```
 
-完整的 NGINX 配置参考 `nginx/nginx.conf`。
+### User 前端安全加固
+
+1. **NGINX 配置 SPA 路由回退**：所有非文件请求回退到 `index.html`
+2. **静态资源长缓存**：`/assets/` 目录设置 1 年缓存（文件名含 hash）
+3. **安全头**：CSP、X-Frame-Options、X-Content-Type-Options 等
+4. **HTTPS**：必须使用 HTTPS（PCI-DSS 4.1 要求）
+
+完整的 NGINX 配置参考 `nginx/nginx.conf` 文件中的 User Frontend 部分。
 
 ---
 
 ## Admin 前端部署
 
-Admin 前端同样是 Vue 3 SPA 应用，部署方法与 User 相同。
+Admin 前端同样是 Vue 3 SPA 应用，构建和部署方法与 User 前端完全相同。
 
-### 构建
+### 构建步骤
 
 ```bash
 cd admin
 
-npm ci
+# 安装依赖
+npm ci --ignore-scripts
 
-# 配置 API 地址（可选）
-# export VITE_API_BASE_URL=https://your-domain.com
+# 配置 API 地址（可选，同 User 说明）
+# export VITE_API_BASE_URL=https://api.your-domain.com
 
+# 构建
 npm run build
 
-cp -r dist/* /var/www/admin/dist/
+# 部署
+sudo mkdir -p /var/www/admin/dist
+sudo cp -r dist/* /var/www/admin/dist/
+
+# 设置安全文件权限
+sudo chown -R www-data:www-data /var/www/admin/dist
+sudo find /var/www/admin/dist -type d -exec chmod 755 {} \;
+sudo find /var/www/admin/dist -type f -exec chmod 644 {} \;
 ```
 
-### 安全建议
+### 管理后台安全加固（重要！）
 
-管理后台应额外加固：
+管理后台包含敏感操作（用户管理、订单管理、支付配置等），**必须**额外加固：
 
-1. **使用独立端口或子域名**（如 `admin.your-domain.com` 或 `:81`）
-2. **IP 白名单** — 在 NGINX 中限制只有管理员 IP 可访问
-3. **更严格的 CSP** — 管理后台不需要 Telegram 等外部脚本
-4. **X-Frame-Options: DENY** — 防止 Clickjacking
+#### 1. 使用独立端口或子域名
 
-示例 NGINX IP 限制：
+推荐方案（任选其一）：
+
+| 方案 | 说明 | 示例 |
+|------|------|------|
+| 独立端口 | 管理后台监听独立端口 | `https://your-domain.com:8443` |
+| 子域名 | 管理后台使用独立子域名 | `https://admin.your-domain.com` |
+| 路径前缀 | 管理后台在主域名下的子路径 | `https://your-domain.com/admin-panel/` |
+
+#### 2. IP 白名单（强烈推荐）
+
+在 NGINX 管理后台 server block 中限制 IP：
+
 ```nginx
 server {
     # ...管理后台配置...
-    allow 你的办公IP/32;
-    allow 10.0.0.0/8;    # 内网
-    deny all;
+
+    # ⚠️ 仅允许管理员 IP 访问
+    allow 你的办公IP/32;         # 你的固定公网 IP
+    allow 10.0.0.0/8;             # 内网（如果需要）
+    allow 192.168.0.0/16;         # 内网（如果需要）
+    deny all;                     # 拒绝其他所有 IP
+}
+```
+
+#### 3. 更严格的 CSP
+
+管理后台不需要 Telegram OAuth 等外部脚本：
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" always;
+```
+
+#### 4. 禁止 iframe 嵌入
+
+```nginx
+add_header X-Frame-Options "DENY" always;
+```
+
+#### 5. 客户端证书认证（可选高安全方案）
+
+对于高安全要求的环境，可配置 NGINX mTLS：
+
+```nginx
+server {
+    # ...管理后台配置...
+    ssl_client_certificate /etc/nginx/ssl/admin-ca.crt;
+    ssl_verify_client on;
 }
 ```
 
@@ -333,8 +418,10 @@ nginx -t && nginx -s reload
 
 ## OWASP CRS 防火墙规则
 
-项目提供了针对 Dujiao-Next 的 OWASP CRS 追加规则文件：
+项目提供了针对 Dujiao-Next **整站**的 OWASP CRS 追加规则文件：
 `nginx/modsecurity/dujiao-crs-rules.conf`
+
+该文件覆盖了 **用户前台、管理后台、API 后端** 全部组件的安全配置。
 
 ### 使用方法
 
@@ -351,7 +438,11 @@ cp nginx/modsecurity/dujiao-crs-rules.conf /etc/nginx/modsecurity/
 #    Include /etc/nginx/modsecurity/dujiao-crs-rules.conf  ← 添加这行
 ```
 
-### 规则说明
+### 规则总览
+
+规则按组件分为四部分：
+
+#### 第一部分: API 接口豁免规则 (10001-10020)
 
 | 规则 ID | 说明 | 作用 |
 |---------|------|------|
@@ -365,6 +456,36 @@ cp nginx/modsecurity/dujiao-crs-rules.conf /etc/nginx/modsecurity/
 | 10009 | 优惠券规则豁免 | 优惠券 JSON 配置不触发规则 |
 | 10010 | Telegram OAuth 豁免 | Telegram 登录签名数据 |
 | 10011 | 推广链接豁免 | 推广 referrer 数据 |
+
+#### 第二部分: 用户前台安全规则 (10050-10069)
+
+| 规则 ID | 说明 | 作用 |
+|---------|------|------|
+| 10050 | SPA HTML 响应豁免 | 防止 index.html 触发出站 XSS 误报 |
+| 10051 | 静态资源豁免 | JS/CSS/字体/图片不触发 WAF |
+| 10052 | 浏览器标准文件豁免 | favicon/robots/manifest |
+| 10053 | 上传目录文件类型限制 | 仅允许图片文件类型 |
+
+#### 第三部分: 管理后台安全规则 (10070-10089)
+
+| 规则 ID | 说明 | 作用 |
+|---------|------|------|
+| 10071 | 操作日志豁免 | 管理员查看日志不触发误报 |
+| 10072 | 邮件模板编辑豁免 | HTML 模板内容不触发 XSS 规则 |
+
+#### 第四部分: 全站通用安全加固 (10100-10119)
+
+| 规则 ID | 说明 | 作用 |
+|---------|------|------|
+| 10100 | 敏感文件屏蔽 | 阻止 .git/.env/.sql/.db 等文件访问 |
+| 10101 | 隐藏文件屏蔽 | 阻止以 `.` 开头的文件/目录 |
+| 10102 | 源码目录屏蔽 | 阻止 node_modules/vendor/internal 等 |
+| 10103 | 配置文件屏蔽 | 阻止 config.yml/docker-compose 等 |
+| 10104 | HTTP 方法限制 | 仅允许 GET/POST/PUT/PATCH/DELETE/OPTIONS |
+| 10105 | PHP/ASP 探测阻止 | 阻止扫描器探测其他语言脚本 |
+| 10106 | 后门路径阻止 | 阻止 wp-admin/phpMyAdmin 等 |
+| 10107 | API 响应类型检查 | API 响应必须是 JSON |
+| 10108 | 空 User-Agent 阻止 | 阻止无 UA 的异常请求 |
 
 ### 推荐的 CRS 全局配置
 
