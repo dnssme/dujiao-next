@@ -3,7 +3,7 @@ package public
 import (
 	"strconv"
 
-	"github.com/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
 
 	"github.com/gin-gonic/gin"
 )

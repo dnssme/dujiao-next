@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 
 	"github.com/glebarez/sqlite"
 	"github.com/shopspring/decimal"

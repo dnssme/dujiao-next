@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/logger"
 
 	"golang.org/x/crypto/bcrypt"
 )

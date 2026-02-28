@@ -7,10 +7,10 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/dujiao-next/internal/app"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/logger"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/app"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"github.com/gin-gonic/gin"
 )

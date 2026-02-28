@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 func TestBuildTelegramPlaceholderEmail(t *testing.T) {

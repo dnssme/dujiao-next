@@ -3,8 +3,8 @@ package service
 import (
 	"strings"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 func hasMultipleActiveSKUs(product *models.Product) bool {

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/constants"
 
 	"github.com/shopspring/decimal"
 )

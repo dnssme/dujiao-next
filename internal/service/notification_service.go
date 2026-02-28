@@ -10,12 +10,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/logger"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/queue"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/logger"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/queue"
 
 	"github.com/hibiken/asynq"
 )

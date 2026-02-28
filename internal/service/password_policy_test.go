@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/config"
 )
 
 func TestValidatePassword_PCIDSSMinLength(t *testing.T) {

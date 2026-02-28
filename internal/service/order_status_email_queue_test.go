@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/dujiao-next/internal/queue"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/queue"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 )
 
 type orderStatusEmailOrderRepoStub struct {

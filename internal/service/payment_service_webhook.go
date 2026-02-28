@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/payment/paypal"
-	"github.com/dujiao-next/internal/payment/stripe"
-	"github.com/dujiao-next/internal/payment/wechatpay"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/payment/paypal"
+	"github.com/mzwrt/dujiao-next/internal/payment/stripe"
+	"github.com/mzwrt/dujiao-next/internal/payment/wechatpay"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 
 	"github.com/shopspring/decimal"
 )

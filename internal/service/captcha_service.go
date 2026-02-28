@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
 
 	"github.com/mojocn/base64Captcha"
 )

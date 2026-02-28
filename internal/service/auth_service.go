@@ -5,10 +5,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"

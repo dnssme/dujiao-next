@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
 
 	"github.com/redis/go-redis/v9"
 )

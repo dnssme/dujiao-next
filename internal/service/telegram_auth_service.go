@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dujiao-next/internal/cache"
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/cache"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
 )
 
 // TelegramLoginPayload Telegram 登录载荷

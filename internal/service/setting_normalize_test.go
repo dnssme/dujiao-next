@@ -3,7 +3,7 @@ package service
 import (
 	"testing"
 
-	"github.com/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/constants"
 )
 
 func TestUpdateOrderSettingNormalized(t *testing.T) {

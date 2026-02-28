@@ -10,10 +10,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/i18n"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/i18n"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 // EmailService 邮件发送服务

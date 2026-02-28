@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/dujiao-next/internal/http/response"
-	"github.com/dujiao-next/internal/i18n"
+	"github.com/mzwrt/dujiao-next/internal/http/response"
+	"github.com/mzwrt/dujiao-next/internal/i18n"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"

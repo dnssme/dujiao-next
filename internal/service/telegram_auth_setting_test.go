@@ -3,8 +3,8 @@ package service
 import (
 	"testing"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
 )
 
 func TestNormalizeTelegramAuthSetting(t *testing.T) {

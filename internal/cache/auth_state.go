@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 const authStateCacheTTL = 10 * time.Minute

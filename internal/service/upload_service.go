@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/config"
 
 	_ "image/gif"
 	_ "image/jpeg"

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dujiao-next/internal/config"
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
 )
 
 // SMTPVerifyCodeSetting SMTP 验证码相关配置

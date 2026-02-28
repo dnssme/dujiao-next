@@ -3,7 +3,7 @@ package service
 import (
 	"unicode"
 
-	"github.com/dujiao-next/internal/config"
+	"github.com/mzwrt/dujiao-next/internal/config"
 )
 
 type passwordPolicyError struct {

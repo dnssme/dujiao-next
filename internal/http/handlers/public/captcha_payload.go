@@ -1,6 +1,6 @@
 package public
 
-import handlershared "github.com/dujiao-next/internal/http/handlers/shared"
+import handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 
 // CaptchaPayloadRequest 验证码请求载荷
 // 前端提交时根据 provider 传入对应字段

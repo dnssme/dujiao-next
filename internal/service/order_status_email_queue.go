@@ -3,8 +3,8 @@ package service
 import (
 	"strings"
 
-	"github.com/dujiao-next/internal/queue"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/queue"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 )
 
 // enqueueOrderStatusEmailTaskIfEligible 根据订单接收邮箱策略决定是否入队状态邮件任务。

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dujiao-next/internal/constants"
-	"github.com/dujiao-next/internal/models"
-	"github.com/dujiao-next/internal/queue"
-	"github.com/dujiao-next/internal/repository"
+	"github.com/mzwrt/dujiao-next/internal/constants"
+	"github.com/mzwrt/dujiao-next/internal/models"
+	"github.com/mzwrt/dujiao-next/internal/queue"
+	"github.com/mzwrt/dujiao-next/internal/repository"
 
 	"github.com/hibiken/asynq"
 	"github.com/shopspring/decimal"
