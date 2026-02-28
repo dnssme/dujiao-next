@@ -117,11 +117,24 @@ func ValidateConfig(cfg *Config) error {
 	if strings.TrimSpace(cfg.GatewayURL) == "" {
 		return fmt.Errorf("%w: gateway_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.GatewayURL)); err != nil {
+		return fmt.Errorf("%w: gateway_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.NotifySecret) == "" {
 		return fmt.Errorf("%w: notify_secret is required", ErrConfigInvalid)
 	}
 	if strings.TrimSpace(cfg.Currency) == "" {
 		return fmt.Errorf("%w: currency is required", ErrConfigInvalid)
+	}
+	if u := strings.TrimSpace(cfg.NotifyURL); u != "" {
+		if _, err := url.ParseRequestURI(u); err != nil {
+			return fmt.Errorf("%w: notify_url is not a valid URL", ErrConfigInvalid)
+		}
+	}
+	if u := strings.TrimSpace(cfg.RedirectURL); u != "" {
+		if _, err := url.ParseRequestURI(u); err != nil {
+			return fmt.Errorf("%w: redirect_url is not a valid URL", ErrConfigInvalid)
+		}
 	}
 	return nil
 }

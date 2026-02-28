@@ -218,14 +218,19 @@ func buildFromAddress(from, name string) string {
 
 func buildEmailMessage(from, to, subject, body string) string {
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("From: %s\r\n", from))
-	buf.WriteString(fmt.Sprintf("To: %s\r\n", to))
-	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", mime.QEncoding.Encode("UTF-8", subject)))
+	buf.WriteString(fmt.Sprintf("From: %s\r\n", sanitizeEmailHeader(from)))
+	buf.WriteString(fmt.Sprintf("To: %s\r\n", sanitizeEmailHeader(to)))
+	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", mime.QEncoding.Encode("UTF-8", sanitizeEmailHeader(subject))))
 	buf.WriteString("MIME-Version: 1.0\r\n")
 	buf.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
 	buf.WriteString("\r\n")
 	buf.WriteString(body)
 	return buf.String()
+}
+
+// sanitizeEmailHeader 移除 CRLF 字符，防止邮件头注入（CWE-93 / PCI-DSS 6.5.1）。
+func sanitizeEmailHeader(value string) string {
+	return strings.NewReplacer("\r\n", "", "\r", "", "\n", "").Replace(value)
 }
 
 func sendMailWithSSL(addr string, auth smtp.Auth, host, from string, to []string, msg []byte) error {

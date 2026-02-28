@@ -54,8 +54,23 @@ func (s *SettingService) GetByKey(key string) (models.JSON, error) {
 	return setting.ValueJSON, nil
 }
 
+// allowedSettingKeys 允许通过 API 更新的设置键白名单（PCI-DSS 6.5.10 — 防止任意键注入）。
+var allowedSettingKeys = map[string]struct{}{
+	constants.SettingKeySiteConfig:               {},
+	constants.SettingKeyOrderConfig:              {},
+	constants.SettingKeySMTPConfig:               {},
+	constants.SettingKeyCaptchaConfig:            {},
+	constants.SettingKeyTelegramAuthConfig:       {},
+	constants.SettingKeyDashboardConfig:          {},
+	constants.SettingKeyNotificationCenterConfig: {},
+	constants.SettingKeyAffiliateConfig:          {},
+}
+
 // Update 设置值
 func (s *SettingService) Update(key string, value map[string]interface{}) (models.JSON, error) {
+	if _, ok := allowedSettingKeys[key]; !ok {
+		return nil, ErrSettingKeyNotAllowed
+	}
 	normalized := normalizeSettingValueByKey(key, value)
 
 	setting, err := s.repo.Upsert(key, normalized)

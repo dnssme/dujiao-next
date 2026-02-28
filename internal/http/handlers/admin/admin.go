@@ -631,6 +631,10 @@ func (h *Handler) UpdateSettings(c *gin.Context) {
 
 	value, err := h.SettingService.Update(req.Key, req.Value)
 	if err != nil {
+		if errors.Is(err, service.ErrSettingKeyNotAllowed) {
+			respondError(c, response.CodeBadRequest, "error.bad_request", nil)
+			return
+		}
 		respondError(c, response.CodeInternal, "error.settings_save_failed", err)
 		return
 	}

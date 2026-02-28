@@ -114,14 +114,23 @@ func ValidateConfig(cfg *Config) error {
 	if strings.TrimSpace(cfg.GatewayURL) == "" {
 		return fmt.Errorf("%w: gateway_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.GatewayURL)); err != nil {
+		return fmt.Errorf("%w: gateway_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.MerchantID) == "" {
 		return fmt.Errorf("%w: merchant_id is required", ErrConfigInvalid)
 	}
 	if strings.TrimSpace(cfg.NotifyURL) == "" {
 		return fmt.Errorf("%w: notify_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.NotifyURL)); err != nil {
+		return fmt.Errorf("%w: notify_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.ReturnURL) == "" {
 		return fmt.Errorf("%w: return_url is required", ErrConfigInvalid)
+	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.ReturnURL)); err != nil {
+		return fmt.Errorf("%w: return_url is not a valid URL", ErrConfigInvalid)
 	}
 	switch cfg.EpayVersion {
 	case VersionV2:

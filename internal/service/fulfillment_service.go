@@ -14,6 +14,7 @@ import (
 	"github.com/dujiao-next/internal/repository"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // FulfillmentService 交付服务
@@ -81,7 +82,7 @@ func (s *FulfillmentService) CreateManual(input CreateManualInput) (*models.Fulf
 	var created *models.Fulfillment
 	err = s.orderRepo.Transaction(func(tx *gorm.DB) error {
 		var existing models.Fulfillment
-		if err := tx.Where("order_id = ?", input.OrderID).First(&existing).Error; err == nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("order_id = ?", input.OrderID).First(&existing).Error; err == nil {
 			return ErrFulfillmentExists
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -190,7 +191,7 @@ func (s *FulfillmentService) CreateAuto(orderID uint) (*models.Fulfillment, erro
 	var fulfillment *models.Fulfillment
 	err = s.orderRepo.Transaction(func(tx *gorm.DB) error {
 		var existing models.Fulfillment
-		if err := tx.Where("order_id = ?", orderID).First(&existing).Error; err == nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("order_id = ?", orderID).First(&existing).Error; err == nil {
 			return ErrFulfillmentExists
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
