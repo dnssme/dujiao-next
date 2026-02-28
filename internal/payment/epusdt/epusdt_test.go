@@ -75,7 +75,7 @@ func TestIsSupportedTradeType(t *testing.T) {
 		expect bool
 	}{
 		{name: "Known", input: epusdtTradeTypeUSDTTRC20, expect: true},
-		{name: "UnknownStillAllowed", input: "custom.chain.asset", expect: true},
+		{name: "UnknownNotAllowed", input: "custom.chain.asset", expect: false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

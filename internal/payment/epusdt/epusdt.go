@@ -121,6 +121,16 @@ func (c *CallbackData) GetActualAmount() float64 {
 	return 0
 }
 
+// GetAmountRaw 获取金额的原始值，用于签名验证，避免 float64 精度丢失。
+func (c *CallbackData) GetAmountRaw() interface{} {
+	return c.Amount
+}
+
+// GetActualAmountRaw 获取实际金额的原始值，用于签名验证，避免 float64 精度丢失。
+func (c *CallbackData) GetActualAmountRaw() interface{} {
+	return c.ActualAmount
+}
+
 // ParseConfig 解析配置
 func ParseConfig(raw map[string]interface{}) (*Config, error) {
 	if raw == nil {
@@ -267,8 +277,8 @@ func VerifyCallback(cfg *Config, data *CallbackData) error {
 	params := map[string]interface{}{
 		"trade_id":             data.TradeID,
 		"order_id":             data.OrderID,
-		"amount":               data.GetAmount(),
-		"actual_amount":        data.GetActualAmount(),
+		"amount":               data.GetAmountRaw(),
+		"actual_amount":        data.GetActualAmountRaw(),
 		"token":                data.Token,
 		"block_transaction_id": data.BlockTransactionID,
 		"status":               data.Status,
@@ -403,8 +413,7 @@ func IsSupportedTradeType(tradeType string) bool {
 			return true
 		}
 	}
-	// 允许任意 trade_type，由 BEpusdt 服务端校验
-	return true
+	return false
 }
 
 // ToPaymentStatus 将 BEpusdt 状态转换为支付状态

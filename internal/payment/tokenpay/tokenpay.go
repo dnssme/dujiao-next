@@ -10,12 +10,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dujiao-next/internal/constants"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -304,11 +307,11 @@ func ParseAmount(raw string) string {
 	if trimmed == "" {
 		return ""
 	}
-	num, err := strconv.ParseFloat(trimmed, 64)
+	d, err := decimal.NewFromString(trimmed)
 	if err != nil {
 		return ""
 	}
-	return strconv.FormatFloat(num, 'f', 2, 64)
+	return d.StringFixed(2)
 }
 
 func ToPaymentStatus(status int) string {
@@ -330,7 +333,7 @@ func QueryOrder(ctx context.Context, cfg *Config, tokenOrderID string) (*QueryRe
 		"Id": tokenOrderID,
 	}
 	params["Signature"] = SignPayload(params, cfg.NotifySecret)
-	endpoint := cfg.GatewayURL + queryOrderPath + "?Id=" + strings.TrimSpace(tokenOrderID) + "&Signature=" + params["Signature"].(string)
+	endpoint := cfg.GatewayURL + queryOrderPath + "?Id=" + url.QueryEscape(strings.TrimSpace(tokenOrderID)) + "&Signature=" + url.QueryEscape(params["Signature"].(string))
 	body, err := getJSON(ctx, endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrRequestFailed, err)
