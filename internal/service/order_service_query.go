@@ -147,7 +147,7 @@ func (s *OrderService) ListOrdersByUser(filter repository.OrderListFilter) ([]mo
 
 // ListOrdersByGuest 获取游客订单列表
 func (s *OrderService) ListOrdersByGuest(email, password string, page, pageSize int) ([]models.Order, int64, error) {
-	orders, total, err := s.orderRepo.ListByGuest(email, page, pageSize)
+	orders, _, err := s.orderRepo.ListByGuest(email, page, pageSize)
 	if err != nil {
 		return nil, 0, ErrOrderFetchFailed
 	}
@@ -161,7 +161,7 @@ func (s *OrderService) ListOrdersByGuest(email, password string, page, pageSize 
 		return nil, 0, ErrOrderUpdateFailed
 	}
 	fillOrdersItemsFromChildren(filtered)
-	return filtered, total, nil
+	return filtered, int64(len(filtered)), nil
 }
 
 // ListOrdersForAdmin 管理端订单列表
