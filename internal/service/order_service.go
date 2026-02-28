@@ -427,6 +427,13 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 		if result.AppliedCoupon != nil {
 			couponRepo := s.couponRepo.WithTx(tx)
 			usageRepo := s.couponUsageRepo.WithTx(tx)
+			// 先原子递增使用次数（含限额检查），再创建使用记录，避免孤立记录
+			if err := couponRepo.IncrementUsedCount(result.AppliedCoupon.ID, 1); err != nil {
+				if errors.Is(err, repository.ErrCouponUsageLimitExceeded) {
+					return ErrCouponUsageLimit
+				}
+				return err
+			}
 			usage := &models.CouponUsage{
 				CouponID:       result.AppliedCoupon.ID,
 				UserID:         input.UserID,
@@ -435,12 +442,6 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 				CreatedAt:      now,
 			}
 			if err := usageRepo.Create(usage); err != nil {
-				return err
-			}
-			if err := couponRepo.IncrementUsedCount(result.AppliedCoupon.ID, 1); err != nil {
-				if errors.Is(err, repository.ErrCouponUsageLimitExceeded) {
-					return ErrCouponUsageLimit
-				}
 				return err
 			}
 		}

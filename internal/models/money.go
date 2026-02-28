@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 
 	"github.com/shopspring/decimal"
 )
@@ -43,7 +44,11 @@ func (m *Money) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &f); err != nil {
 		return err
 	}
-	m.Decimal = decimal.NewFromFloat(f).Round(2)
+	d, err := decimal.NewFromString(fmt.Sprintf("%v", json.Number(string(b))))
+	if err != nil {
+		d = decimal.NewFromFloat(f)
+	}
+	m.Decimal = d.Round(2)
 	return nil
 }
 

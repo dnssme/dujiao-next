@@ -125,7 +125,7 @@ func (r *GormGiftCardRepository) GetByCodeForUpdate(code string) (*models.GiftCa
 func (r *GormGiftCardRepository) List(filter GiftCardListFilter) ([]models.GiftCard, int64, error) {
 	query := r.db.Model(&models.GiftCard{}).Preload("Batch")
 	if code := strings.TrimSpace(strings.ToUpper(filter.Code)); code != "" {
-		query = query.Where("code LIKE ?", "%"+code+"%")
+		query = query.Where("code LIKE ?", "%"+escapeLikePattern(code)+"%")
 	}
 	if status := strings.TrimSpace(filter.Status); status != "" {
 		now := time.Now()
@@ -140,7 +140,7 @@ func (r *GormGiftCardRepository) List(filter GiftCardListFilter) ([]models.GiftC
 	}
 	if batchNo := strings.TrimSpace(strings.ToUpper(filter.BatchNo)); batchNo != "" {
 		query = query.Joins("LEFT JOIN gift_card_batches ON gift_card_batches.id = gift_cards.batch_id").
-			Where("gift_card_batches.batch_no LIKE ?", "%"+batchNo+"%")
+			Where("gift_card_batches.batch_no LIKE ?", "%"+escapeLikePattern(batchNo)+"%")
 	}
 	if filter.RedeemedUserID > 0 {
 		query = query.Where("redeemed_user_id = ?", filter.RedeemedUserID)

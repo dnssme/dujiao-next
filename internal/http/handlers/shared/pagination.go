@@ -5,6 +5,9 @@ func NormalizePagination(page, pageSize int) (int, int) {
 	if page < 1 {
 		page = 1
 	}
+	if page > 10000 {
+		page = 10000
+	}
 	if pageSize <= 0 {
 		pageSize = 20
 	}

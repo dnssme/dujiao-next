@@ -171,7 +171,7 @@ func (r *GormAffiliateRepository) ListProfiles(filter AffiliateProfileListFilter
 		query = query.Where("affiliate_profiles.status = ?", status)
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
-		like := "%" + keyword + "%"
+		like := "%" + escapeLikePattern(keyword) + "%"
 		query = query.
 			Joins("LEFT JOIN users ON users.id = affiliate_profiles.user_id").
 			Where("(users.email LIKE ? OR users.display_name LIKE ? OR affiliate_profiles.affiliate_code LIKE ?)", like, like, like)
@@ -300,13 +300,13 @@ func (r *GormAffiliateRepository) ListCommissions(filter AffiliateCommissionList
 	}
 	if orderNo := strings.TrimSpace(filter.OrderNo); orderNo != "" {
 		query = query.Joins("LEFT JOIN orders ON orders.id = affiliate_commissions.order_id").
-			Where("orders.order_no LIKE ?", "%"+orderNo+"%")
+			Where("orders.order_no LIKE ?", "%"+escapeLikePattern(orderNo)+"%")
 	}
 	if status := strings.TrimSpace(filter.Status); status != "" {
 		query = query.Where("affiliate_commissions.status = ?", status)
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
-		like := "%" + keyword + "%"
+		like := "%" + escapeLikePattern(keyword) + "%"
 		query = query.
 			Joins("LEFT JOIN affiliate_profiles ap ON ap.id = affiliate_commissions.affiliate_profile_id").
 			Joins("LEFT JOIN users u ON u.id = ap.user_id").
@@ -510,7 +510,7 @@ func (r *GormAffiliateRepository) ListWithdraws(filter AffiliateWithdrawListFilt
 		query = query.Where("affiliate_withdraw_requests.status = ?", status)
 	}
 	if keyword := strings.TrimSpace(filter.Keyword); keyword != "" {
-		like := "%" + keyword + "%"
+		like := "%" + escapeLikePattern(keyword) + "%"
 		query = query.
 			Joins("LEFT JOIN affiliate_profiles ap ON ap.id = affiliate_withdraw_requests.affiliate_profile_id").
 			Joins("LEFT JOIN users u ON u.id = ap.user_id").

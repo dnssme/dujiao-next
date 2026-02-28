@@ -272,13 +272,13 @@ func (r *GormWalletRepository) ListRechargeOrdersAdmin(filter WalletRechargeList
 	query := r.db.Model(&models.WalletRechargeOrder{})
 
 	if filter.RechargeNo != "" {
-		query = query.Where("wallet_recharge_orders.recharge_no LIKE ?", "%"+filter.RechargeNo+"%")
+		query = query.Where("wallet_recharge_orders.recharge_no LIKE ?", "%"+escapeLikePattern(filter.RechargeNo)+"%")
 	}
 	if filter.UserID != 0 {
 		query = query.Where("wallet_recharge_orders.user_id = ?", filter.UserID)
 	}
 	if filter.UserKeyword != "" {
-		like := "%" + filter.UserKeyword + "%"
+		like := "%" + escapeLikePattern(filter.UserKeyword) + "%"
 		query = query.
 			Joins("LEFT JOIN users ON users.id = wallet_recharge_orders.user_id").
 			Where("(users.email LIKE ? OR users.display_name LIKE ?)", like, like)

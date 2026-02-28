@@ -83,7 +83,7 @@ func (r *GormUserRepository) List(filter UserListFilter) ([]models.User, int64, 
 	query := r.db.Model(&models.User{})
 
 	if filter.Keyword != "" {
-		like := "%" + filter.Keyword + "%"
+		like := "%" + escapeLikePattern(filter.Keyword) + "%"
 		query = query.Where("email LIKE ? OR display_name LIKE ?", like, like)
 	}
 	if filter.Status != "" {

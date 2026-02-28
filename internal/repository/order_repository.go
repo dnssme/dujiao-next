@@ -249,7 +249,7 @@ func (r *GormOrderRepository) ListByUser(filter OrderListFilter) ([]models.Order
 		query = query.Where("status = ?", filter.Status)
 	}
 	if filter.OrderNo != "" {
-		query = query.Where("order_no LIKE ?", "%"+filter.OrderNo+"%")
+		query = query.Where("order_no LIKE ?", "%"+escapeLikePattern(filter.OrderNo)+"%")
 	}
 
 	var total int64
