@@ -25,8 +25,3 @@ func applyPagination(query *gorm.DB, page, pageSize int) *gorm.DB {
 func escapeLikePattern(s string) string {
 	return strings.ReplaceAll(s, "%", "")
 }
-
-// likeContains 构造安全的 LIKE '%keyword%' 参数。
-func likeContains(keyword string) string {
-	return "%" + escapeLikePattern(keyword) + "%"
-}
