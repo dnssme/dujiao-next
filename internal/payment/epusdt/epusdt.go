@@ -242,7 +242,7 @@ func CreatePayment(ctx context.Context, cfg *Config, input CreateInput) (*Create
 		returnURL = cfg.ReturnURL
 	}
 
-	// decimal で金額を検証し、精度の損失を回避するため json.Number として送信する。
+	// 使用 decimal 校验金额精度，通过 json.Number 发送避免 float64 精度丢失。
 	amountDecimal, err := decimal.NewFromString(input.Amount)
 	if err != nil || amountDecimal.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("%w: invalid amount", ErrConfigInvalid)
