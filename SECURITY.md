@@ -154,6 +154,7 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 12 轮 | 认证时序攻击/支付纵深防御 | 4 中-高 | 4 ✅ | 0 |
 | 第 13-17 轮 | 全量 5 轮终审（go vet + go test + 手工代码审查） | 0 | — | 0 |
 | 第 18 轮 | 安全头/密码策略/支付防护/订单竞态 | 6 中-高 | 6 ✅ | 0 |
+| 第 19 轮 | 5-agent 并行深度审查 + CodeQL | 3 中-高 | 3 ✅ | 0 |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -194,6 +195,9 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 31 | 高 | 支付金额无上限可导致溢出 (PCI-DSS 6.5.5) | `payment_service.go` 添加 `maxPayableAmount=10M` 上限检查 |
 | 32 | 中 | Capture 返回金额未校验正值 (PCI-DSS 6.5.5) | `payment_service_capture.go` PayPal/WeChat/Stripe 解析后添加 `parsed.IsPositive()` 校验 |
 | 33 | 高 | 订单状态更新无条件 WHERE 导致 TOCTOU 竞态 (PCI-DSS 6.5.6) | `order_repository.go` 添加 `UpdateStatusConditional()`，`payment_service_callback.go` markOrderPaid 改用条件更新 |
+| 34 | 中 | LIKE 转义缺少反斜杠处理，可绕过通配符过滤 | `pagination.go` `escapeLikePattern()` 增加反斜杠剥离 |
+| 35 | 高 | 订单取消可覆盖已支付状态（取消 TOCTOU 竞态） | `order_service.go` `cancelOrderWithChildren()` 改用 `UpdateStatusConditional()` 仅从 pending_payment 取消 |
+| 36 | 中 | Stripe webhook 时间戳容差 300s 过长，重放攻击窗口大 | `stripe.go` 默认容差从 300s 降至 60s |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -214,8 +218,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：18 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固）
+- 审查轮次：19 轮完整审查（5 轮初审 + 5 轮深度复查 + 2 轮 CIS/PCI-DSS 合规深度审查 + 5 轮全量终审 + 1 轮最终安全加固 + 1 轮 5-agent 并行深度审查）
 - 审查范围：全部 Go API 源代码（211+ 个 .go 生产文件、47 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
-- 审查方法：人工代码审查 × 18 轮 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 4
-- 已修复：11 个高危问题 + 18 个中危问题 + 4 个低危问题（共 33 项）
+- 审查方法：人工代码审查 × 19 轮 + 5-agent 并行深度审查 + 自动化测试（go test 17 套件全部通过）+ go vet 静态分析 + CodeQL 安全扫描（0 alerts）× 5
+- 已修复：12 个高危问题 + 19 个中危问题 + 5 个低危问题（共 36 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**
