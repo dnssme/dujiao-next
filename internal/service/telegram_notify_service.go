@@ -74,7 +74,7 @@ func (s *TelegramNotifyService) SendMessage(ctx context.Context, chatID, message
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrNotificationSendFailed, err)
 	}
