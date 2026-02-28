@@ -22,6 +22,9 @@ func applyPagination(query *gorm.DB, page, pageSize int) *gorm.DB {
 }
 
 // escapeLikePattern 转义 SQL LIKE 模式中的 % 通配符，防止搜索绕过。
+// 注: 不去除 _ (单字符通配符) — 其攻击面极小且合法数据常含下划线。
 func escapeLikePattern(s string) string {
-	return strings.ReplaceAll(s, "%", "")
+	s = strings.ReplaceAll(s, "\\", "")
+	s = strings.ReplaceAll(s, "%", "")
+	return s
 }

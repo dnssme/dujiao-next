@@ -851,8 +851,16 @@ func (s *OrderService) cancelOrderWithChildren(order *models.Order, rollbackCoup
 			"canceled_at": now,
 			"updated_at":  now,
 		}
-		if err := orderRepo.UpdateStatus(order.ID, constants.OrderStatusCanceled, updates); err != nil {
+		// PCI-DSS 6.5.6 — 使用条件更新防止取消覆盖已支付的订单（TOCTOU 防护）。
+		affected, err := orderRepo.UpdateStatusConditional(order.ID,
+			[]string{constants.OrderStatusPendingPayment},
+			constants.OrderStatusCanceled, updates)
+		if err != nil {
 			return ErrOrderUpdateFailed
+		}
+		if affected == 0 {
+			// 订单状态已变（如已支付），放弃取消。
+			return nil
 		}
 		for _, child := range order.Children {
 			if child.Status == constants.OrderStatusCompleted || child.Status == constants.OrderStatusDelivered {

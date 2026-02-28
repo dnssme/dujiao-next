@@ -32,7 +32,7 @@ var (
 const (
 	defaultAPIBaseURL        = "https://api.stripe.com"
 	defaultTimeout           = 12 * time.Second
-	defaultWebhookToleranceS = 300
+	defaultWebhookToleranceS = 60
 
 	stripeObjectCheckoutSession = "checkout.session"
 	stripeObjectPaymentIntent   = "payment_intent"
