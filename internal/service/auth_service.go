@@ -14,6 +14,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// dummyBcryptHash 用于防止时序攻击的预计算 bcrypt 哈希。
+// PCI-DSS 6.5.10 — 当用户不存在时仍执行恒定时间的密码比对，防止通过响应时间枚举有效用户名。
+var dummyBcryptHash, _ = bcrypt.GenerateFromPassword([]byte("dujiao-timing-safe-dummy"), bcrypt.DefaultCost)
+
 // AuthService 认证服务
 type AuthService struct {
 	cfg       *config.Config
@@ -108,6 +112,8 @@ func (s *AuthService) Login(username, password string) (*models.Admin, string, t
 		return nil, "", time.Time{}, err
 	}
 	if admin == nil {
+		// PCI-DSS 6.5.10 — 防止时序攻击：用户不存在时仍执行 bcrypt 比对，确保响应时间恒定。
+		_ = bcrypt.CompareHashAndPassword(dummyBcryptHash, []byte(password))
 		return nil, "", time.Time{}, ErrInvalidCredentials
 	}
 

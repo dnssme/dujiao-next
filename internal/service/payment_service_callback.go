@@ -74,6 +74,7 @@ func (s *PaymentService) HandleCallback(input PaymentCallbackInput) (*models.Pay
 		)
 		return nil, ErrPaymentInvalid
 	}
+	// PCI-DSS 6.5.1 — 支付回调金额与币种交叉校验：当提供了金额时，币种必须同时提供且匹配。
 	if input.Currency != "" && strings.ToUpper(strings.TrimSpace(input.Currency)) != strings.ToUpper(strings.TrimSpace(payment.Currency)) {
 		log.Warnw("payment_callback_currency_mismatch",
 			"stored_currency", payment.Currency,
@@ -81,12 +82,21 @@ func (s *PaymentService) HandleCallback(input PaymentCallbackInput) (*models.Pay
 		)
 		return nil, ErrPaymentCurrencyMismatch
 	}
-	if !input.Amount.Decimal.IsZero() && input.Amount.Decimal.Cmp(payment.Amount.Decimal) != 0 {
-		log.Warnw("payment_callback_amount_mismatch",
-			"stored_amount", payment.Amount.String(),
-			"callback_amount", input.Amount.String(),
-		)
-		return nil, ErrPaymentAmountMismatch
+	if !input.Amount.Decimal.IsZero() {
+		if input.Amount.Decimal.Cmp(payment.Amount.Decimal) != 0 {
+			log.Warnw("payment_callback_amount_mismatch",
+				"stored_amount", payment.Amount.String(),
+				"callback_amount", input.Amount.String(),
+			)
+			return nil, ErrPaymentAmountMismatch
+		}
+		// 纵深防御：当回调提供了金额但未提供币种时，记录警告日志。
+		if strings.TrimSpace(input.Currency) == "" {
+			log.Warnw("payment_callback_amount_without_currency",
+				"stored_currency", payment.Currency,
+				"callback_amount", input.Amount.String(),
+			)
+		}
 	}
 
 	// 幂等处理：已成功的不再回退状态
@@ -173,12 +183,20 @@ func (s *PaymentService) handleWalletRechargeCallback(payment *models.Payment, s
 		)
 		return nil, ErrPaymentCurrencyMismatch
 	}
-	if !input.Amount.Decimal.IsZero() && input.Amount.Decimal.Cmp(payment.Amount.Decimal) != 0 {
-		log.Warnw("wallet_recharge_callback_amount_mismatch",
-			"stored_amount", payment.Amount.String(),
-			"callback_amount", input.Amount.String(),
-		)
-		return nil, ErrPaymentAmountMismatch
+	if !input.Amount.Decimal.IsZero() {
+		if input.Amount.Decimal.Cmp(payment.Amount.Decimal) != 0 {
+			log.Warnw("wallet_recharge_callback_amount_mismatch",
+				"stored_amount", payment.Amount.String(),
+				"callback_amount", input.Amount.String(),
+			)
+			return nil, ErrPaymentAmountMismatch
+		}
+		if strings.TrimSpace(input.Currency) == "" {
+			log.Warnw("wallet_recharge_callback_amount_without_currency",
+				"stored_currency", payment.Currency,
+				"callback_amount", input.Amount.String(),
+			)
+		}
 	}
 
 	// 幂等处理：已成功状态仅更新回调元信息。

@@ -731,8 +731,9 @@ func normalizeAffiliateCode(raw string) string {
 	if code == "" {
 		return ""
 	}
+	// CIS — 拒绝超长推广码，避免截断导致不同推广码映射到相同值。
 	if len(code) > 32 {
-		return code[:32]
+		return ""
 	}
 	return code
 }
@@ -1361,6 +1362,10 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 		return nil, nil
 	}
 	const maxItemQuantity = 10000
+	const maxOrderItemTypes = 100 // PCI-DSS 6.5.10 — 限制单笔订单最大商品种类数，防止资源耗尽攻击
+	if len(items) > maxOrderItemTypes {
+		return nil, ErrOrderItemQuantityExceeded
+	}
 	merged := make([]CreateOrderItem, 0, len(items))
 	indexMap := make(map[string]int)
 	for _, item := range items {
