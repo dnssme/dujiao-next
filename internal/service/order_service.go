@@ -427,6 +427,13 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 		if result.AppliedCoupon != nil {
 			couponRepo := s.couponRepo.WithTx(tx)
 			usageRepo := s.couponUsageRepo.WithTx(tx)
+			// 先原子递增使用次数（含限额检查），再创建使用记录，避免孤立记录
+			if err := couponRepo.IncrementUsedCount(result.AppliedCoupon.ID, 1); err != nil {
+				if errors.Is(err, repository.ErrCouponUsageLimitExceeded) {
+					return ErrCouponUsageLimit
+				}
+				return err
+			}
 			usage := &models.CouponUsage{
 				CouponID:       result.AppliedCoupon.ID,
 				UserID:         input.UserID,
@@ -435,9 +442,6 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 				CreatedAt:      now,
 			}
 			if err := usageRepo.Create(usage); err != nil {
-				return err
-			}
-			if err := couponRepo.IncrementUsedCount(result.AppliedCoupon.ID, 1); err != nil {
 				return err
 			}
 		}
@@ -449,6 +453,9 @@ func (s *OrderService) createOrder(input orderCreateParams) (*models.Order, erro
 		}
 		if errors.Is(err, ErrManualStockInsufficient) {
 			return nil, ErrManualStockInsufficient
+		}
+		if errors.Is(err, ErrCouponUsageLimit) {
+			return nil, ErrCouponUsageLimit
 		}
 		return nil, ErrOrderCreateFailed
 	}
@@ -1348,6 +1355,7 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 	if len(items) == 0 {
 		return nil, nil
 	}
+	const maxItemQuantity = 10000
 	merged := make([]CreateOrderItem, 0, len(items))
 	indexMap := make(map[string]int)
 	for _, item := range items {
@@ -1357,7 +1365,13 @@ func mergeCreateOrderItems(items []CreateOrderItem) ([]CreateOrderItem, error) {
 		key := buildOrderItemKey(item.ProductID, item.SKUID)
 		if idx, ok := indexMap[key]; ok {
 			merged[idx].Quantity += item.Quantity
+			if merged[idx].Quantity > maxItemQuantity {
+				return nil, ErrOrderItemQuantityExceeded
+			}
 			continue
+		}
+		if item.Quantity > maxItemQuantity {
+			return nil, ErrOrderItemQuantityExceeded
 		}
 		indexMap[key] = len(merged)
 		merged = append(merged, CreateOrderItem{

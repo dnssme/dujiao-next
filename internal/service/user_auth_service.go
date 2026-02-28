@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"math/big"
@@ -759,7 +760,7 @@ func (s *UserAuthService) verifyCode(email, purpose, code string) (*models.Email
 		return nil, ErrVerifyCodeAttemptsExceeded
 	}
 
-	if strings.TrimSpace(record.Code) != strings.TrimSpace(code) {
+	if subtle.ConstantTimeCompare([]byte(strings.TrimSpace(record.Code)), []byte(strings.TrimSpace(code))) != 1 {
 		_ = s.codeRepo.IncrementAttempt(record.ID)
 		return nil, ErrVerifyCodeInvalid
 	}

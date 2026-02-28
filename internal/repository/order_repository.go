@@ -249,7 +249,7 @@ func (r *GormOrderRepository) ListByUser(filter OrderListFilter) ([]models.Order
 		query = query.Where("status = ?", filter.Status)
 	}
 	if filter.OrderNo != "" {
-		query = query.Where("order_no LIKE ?", "%"+filter.OrderNo+"%")
+		query = query.Where("order_no LIKE ?", "%"+escapeLikePattern(filter.OrderNo)+"%")
 	}
 
 	var total int64
@@ -276,12 +276,10 @@ func (r *GormOrderRepository) ListByGuest(email, password string, page, pageSize
 	}
 
 	var orders []models.Order
-	query := r.withChildren(r.db.Preload("Items"))
+	query := applyPagination(r.withChildren(r.db.Preload("Items")), page, pageSize)
 	if err := query.
 		Where("user_id = 0 AND guest_email = ? AND guest_password = ? AND parent_id IS NULL", email, password).
 		Order("id desc").
-		Limit(pageSize).
-		Offset((page - 1) * pageSize).
 		Find(&orders).Error; err != nil {
 		return nil, 0, err
 	}

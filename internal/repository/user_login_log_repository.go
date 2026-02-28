@@ -78,13 +78,10 @@ func (r *GormUserLoginLogRepository) ListByUser(userID uint, page, pageSize int)
 		return nil, 0, err
 	}
 
-	offset := (page - 1) * pageSize
-	if offset < 0 {
-		offset = 0
-	}
+	query = applyPagination(query, page, pageSize)
 
 	var logs []models.UserLoginLog
-	if err := query.Order("id desc").Limit(pageSize).Offset(offset).Find(&logs).Error; err != nil {
+	if err := query.Order("id desc").Find(&logs).Error; err != nil {
 		return nil, 0, err
 	}
 	return logs, total, nil

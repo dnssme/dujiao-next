@@ -92,10 +92,7 @@ func (r *GormCardSecretRepository) ListByProduct(productID, skuID uint, status s
 		return nil, 0, err
 	}
 
-	if pageSize > 0 {
-		offset := (page - 1) * pageSize
-		query = query.Limit(pageSize).Offset(offset)
-	}
+	query = applyPagination(query, page, pageSize)
 
 	var items []models.CardSecret
 	if err := query.Order("id asc").Find(&items).Error; err != nil {
@@ -116,10 +113,7 @@ func (r *GormCardSecretRepository) ListAll(status string, page, pageSize int) ([
 		return nil, 0, err
 	}
 
-	if pageSize > 0 {
-		offset := (page - 1) * pageSize
-		query = query.Limit(pageSize).Offset(offset)
-	}
+	query = applyPagination(query, page, pageSize)
 
 	var items []models.CardSecret
 	if err := query.Order("id asc").Find(&items).Error; err != nil {

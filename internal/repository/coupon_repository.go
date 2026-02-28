@@ -9,6 +9,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrCouponUsageLimitExceeded 优惠券使用次数已达上限
+var ErrCouponUsageLimitExceeded = errors.New("coupon usage limit exceeded")
+
 // CouponRepository 优惠券数据访问接口
 type CouponRepository interface {
 	GetByID(id uint) (*models.Coupon, error)
@@ -144,14 +147,21 @@ func (r *GormCouponRepository) List(filter CouponListFilter) ([]models.Coupon, i
 	return coupons, total, nil
 }
 
-// IncrementUsedCount 增加优惠券使用次数
+// IncrementUsedCount 增加优惠券使用次数（原子检查 usage_limit 防止超限）
 func (r *GormCouponRepository) IncrementUsedCount(id uint, delta int) error {
-	if delta == 0 {
+	if delta <= 0 {
 		delta = 1
 	}
-	return r.db.Model(&models.Coupon{}).
-		Where("id = ?", id).
-		UpdateColumn("used_count", gorm.Expr("used_count + ?", delta)).Error
+	result := r.db.Model(&models.Coupon{}).
+		Where("id = ? AND (usage_limit = 0 OR used_count + ? <= usage_limit)", id, delta).
+		UpdateColumn("used_count", gorm.Expr("used_count + ?", delta))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrCouponUsageLimitExceeded
+	}
+	return nil
 }
 
 // DecrementUsedCount 减少优惠券使用次数

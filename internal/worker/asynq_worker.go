@@ -181,7 +181,7 @@ func (c *Consumer) handleOrderTimeoutCancel(_ context.Context, task *asynq.Task)
 			return nil
 		case errors.Is(err, service.ErrOrderFetchFailed):
 			logger.Warnw("worker_order_timeout_cancel_fetch_failed", "order_id", payload.OrderID, "error", err)
-			return nil
+			return err
 		case errors.Is(err, service.ErrOrderUpdateFailed):
 			logger.Warnw("worker_order_timeout_cancel_update_failed", "order_id", payload.OrderID, "error", err)
 			return err

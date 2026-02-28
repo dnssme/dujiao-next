@@ -1,6 +1,10 @@
 package models
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/dujiao-next/internal/logger"
@@ -25,8 +29,14 @@ func InitDefaultAdmin(username, password string) error {
 	if username == "" {
 		username = "admin"
 	}
+	generated := false
 	if password == "" {
-		password = "admin123"
+		var err error
+		password, err = generateRandomPassword(24)
+		if err != nil {
+			return fmt.Errorf("generate random password failed: %w", err)
+		}
+		generated = true
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -43,12 +53,40 @@ func InitDefaultAdmin(username, password string) error {
 		return err
 	}
 
-	if password == "admin123" {
-		logger.Warnw("default_admin_created_with_default_password", "username", username, "password", password)
+	if generated {
+		printGeneratedCredentials(username, password)
+		logger.Warnw("default_admin_created_with_random_password", "username", username)
 		logger.Warnw("default_admin_password_change_required", "username", username)
 	} else {
 		logger.Warnw("default_admin_created", "username", username, "password_hidden", true)
 	}
 
 	return nil
+}
+
+// printGeneratedCredentials 将生成的凭据输出到 stderr，确保用户在终端和 docker logs 中都能看到。
+func printGeneratedCredentials(username, password string) {
+	const banner = `
+╔══════════════════════════════════════════════════════════════╗
+║           ⚠️  默认管理员账号已自动创建                        ║
+║           ⚠️  Default admin account created                  ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║   用户名 / Username : %-36s  ║
+║   密  码 / Password : %-36s  ║
+║                                                              ║
+║   ⚠️  请立即登录后台修改此密码！                              ║
+║   ⚠️  Please change this password immediately!               ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+`
+	fmt.Fprintf(os.Stderr, banner, username, password)
+}
+
+func generateRandomPassword(length int) (string, error) {
+	buf := make([]byte, length)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf)[:length], nil
 }

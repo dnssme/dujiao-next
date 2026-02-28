@@ -1,0 +1,91 @@
+# ============================================================================
+# Dujiao-Next API — Docker Compose 部署配置
+# CIS Docker Benchmark & PCI-DSS Compliant
+# ============================================================================
+#
+# 本文件仅部署 API 后端服务。
+# NGINX、Redis 等组件请自行单独部署，详见 DEPLOYMENT.md。
+#
+# 使用方法:
+#   1. cp config.yml.example config.yml && vim config.yml   # 修改配置
+#   2. docker compose up -d                                 # 启动 API
+#   3. docker compose logs -f dujiao-api                    # 查看日志
+#
+# 首次启动时，管理员账号和密码会打印在日志中，请注意保存。
+# ============================================================================
+
+services:
+  dujiao-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dujiao-next-api:latest
+    container_name: dujiao-api
+    restart: unless-stopped
+
+    # ── 端口 ──────────────────────────────────────────────────
+    # 仅监听 127.0.0.1，由外部 NGINX 反向代理
+    # ⚠️ 如果 NGINX 和 API 不在同一台机器，改为 0.0.0.0:8080:8080
+    #    并配置防火墙规则仅允许 NGINX 服务器 IP 访问 8080 端口
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    # ── 环境变量 ──────────────────────────────────────────────
+    environment:
+      # 管理员凭据（仅首次启动生效；留空自动生成随机密码并打印到日志）
+      - DJ_DEFAULT_ADMIN_USERNAME=${DJ_DEFAULT_ADMIN_USERNAME:-admin}
+      - DJ_DEFAULT_ADMIN_PASSWORD=${DJ_DEFAULT_ADMIN_PASSWORD:-}
+
+    # ── 数据卷 ────────────────────────────────────────────────
+    volumes:
+      # 配置文件（只读挂载）
+      - ./config.yml:/app/config.yml:ro
+      # 数据库文件（SQLite 模式）
+      - dujiao_db:/app/db
+      # 用户上传文件
+      - dujiao_uploads:/app/uploads
+      # 应用日志
+      - dujiao_logs:/app/logs
+
+    # ── CIS 5.2 - 资源限制 ───────────────────────────────────
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 64M
+
+    # ── CIS 5.12 / PCI-DSS 6.4.2 - 安全加固 ─────────────────
+    security_opt:
+      - no-new-privileges:true
+
+    # CIS 5.3 - 丢弃所有不需要的 Linux 能力
+    cap_drop:
+      - ALL
+
+    # PCI-DSS 2.2.1 - 禁止特权模式
+    privileged: false
+
+    # CIS 5.26 - 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  dujiao_db:
+    name: dujiao_db
+  dujiao_uploads:
+    name: dujiao_uploads
+  dujiao_logs:
+    name: dujiao_logs

@@ -1,6 +1,10 @@
 package repository
 
-import "gorm.io/gorm"
+import (
+	"strings"
+
+	"gorm.io/gorm"
+)
 
 // applyPagination 应用分页参数，统一处理非法页码与偏移量。
 func applyPagination(query *gorm.DB, page, pageSize int) *gorm.DB {
@@ -15,4 +19,9 @@ func applyPagination(query *gorm.DB, page, pageSize int) *gorm.DB {
 		offset = 0
 	}
 	return query.Limit(pageSize).Offset(offset)
+}
+
+// escapeLikePattern 转义 SQL LIKE 模式中的 % 通配符，防止搜索绕过。
+func escapeLikePattern(s string) string {
+	return strings.ReplaceAll(s, "%", "")
 }

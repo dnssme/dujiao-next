@@ -39,11 +39,16 @@ func (m *Money) UnmarshalJSON(b []byte) error {
 		m.Decimal = d.Round(2)
 		return nil
 	}
-	var f float64
-	if err := json.Unmarshal(b, &f); err != nil {
-		return err
+	// 数字类型：直接用原始字节串构造 decimal，避免 float64 精度损失
+	d, err := decimal.NewFromString(string(b))
+	if err != nil {
+		var f float64
+		if err := json.Unmarshal(b, &f); err != nil {
+			return err
+		}
+		d = decimal.NewFromFloat(f)
 	}
-	m.Decimal = decimal.NewFromFloat(f).Round(2)
+	m.Decimal = d.Round(2)
 	return nil
 }
 

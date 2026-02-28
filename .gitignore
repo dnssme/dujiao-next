@@ -9,5 +9,12 @@ uploads
 .DS_Store
 */node_modules/
 */dist/
+node_modules/
 # Added by goreleaser init:
 dist/
+# Frontend build artifacts
+user/dist/
+admin/dist/
+# SSL certs (generated at deploy time)
+nginx/ssl/
+nginx/modsecurity/unicode.mapping
