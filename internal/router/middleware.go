@@ -96,16 +96,30 @@ func resolveAllowedOrigin(origin string, allowedOrigins []string, allowCredentia
 }
 
 // RequestIDMiddleware 请求 ID 中间件
+// CIS — 对客户端提交的 X-Request-ID 进行格式校验，防止日志注入。
 func RequestIDMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestID := strings.TrimSpace(c.GetHeader(requestIDHeader))
-		if requestID == "" {
+		if requestID == "" || !isValidRequestID(requestID) {
 			requestID = uuid.NewString()
 		}
 		c.Set(requestIDKey, requestID)
 		c.Writer.Header().Set(requestIDHeader, requestID)
 		c.Next()
 	}
+}
+
+// isValidRequestID 校验 X-Request-ID 是否安全：仅允许 UUID 格式或长度 ≤ 128 的字母数字及 -_ 字符。
+func isValidRequestID(id string) bool {
+	if len(id) == 0 || len(id) > 128 {
+		return false
+	}
+	for _, r := range id {
+		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
 }
 
 // LoggerMiddleware 结构化请求日志中间件

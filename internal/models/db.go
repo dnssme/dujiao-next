@@ -30,6 +30,12 @@ type DBPoolConfig struct {
 
 // InitDB 初始化数据库连接
 func InitDB(driver, dsn string, pool DBPoolConfig) error {
+	return InitDBWithMode(driver, dsn, pool, "")
+}
+
+// InitDBWithMode 初始化数据库连接（支持根据运行模式调整日志级别）
+// PCI-DSS 10.2 — 生产环境仅记录 Warn 及以上级别，避免 SQL 查询泄露敏感数据。
+func InitDBWithMode(driver, dsn string, pool DBPoolConfig, mode string) error {
 	var err error
 	normalized := strings.ToLower(strings.TrimSpace(driver))
 	var dialector gorm.Dialector
@@ -42,8 +48,12 @@ func InitDB(driver, dsn string, pool DBPoolConfig) error {
 	default:
 		return fmt.Errorf("unsupported database driver: %s", driver)
 	}
+	logMode := logger.Info
+	if strings.EqualFold(strings.TrimSpace(mode), "release") {
+		logMode = logger.Warn
+	}
 	DB, err = gorm.Open(dialector, &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logMode),
 	})
 	if err != nil {
 		return err

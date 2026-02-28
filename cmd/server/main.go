@@ -49,13 +49,13 @@ func main() {
 		}
 	}
 
-	// 初始化数据库
-	if err := models.InitDB(cfg.Database.Driver, cfg.Database.DSN, models.DBPoolConfig{
+	// 初始化数据库 (PCI-DSS 10.2 — 生产模式使用 Warn 级别 SQL 日志)
+	if err := models.InitDBWithMode(cfg.Database.Driver, cfg.Database.DSN, models.DBPoolConfig{
 		MaxOpenConns:           cfg.Database.Pool.MaxOpenConns,
 		MaxIdleConns:           cfg.Database.Pool.MaxIdleConns,
 		ConnMaxLifetimeSeconds: cfg.Database.Pool.ConnMaxLifetimeSeconds,
 		ConnMaxIdleTimeSeconds: cfg.Database.Pool.ConnMaxIdleTimeSeconds,
-	}); err != nil {
+	}, cfg.Server.Mode); err != nil {
 		stdLog.Fatalf("数据库初始化失败: %v", err)
 	}
 

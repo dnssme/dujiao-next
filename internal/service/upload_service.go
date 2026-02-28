@@ -115,8 +115,8 @@ func (s *UploadService) SaveFile(file *multipart.FileHeader, scene string) (stri
 	month := now.Format("01")
 	savePath := filepath.Join("uploads", normalizedScene, year, month, filename)
 
-	// 确保上传目录存在
-	if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
+	// 确保上传目录存在 (CIS 4.6 — 最小文件权限)
+	if err := os.MkdirAll(filepath.Dir(savePath), 0750); err != nil {
 		return "", err
 	}
 
@@ -195,6 +195,8 @@ func decodeWebPDimensions(src io.ReadSeeker) (int, int, error) {
 		return 0, 0, fmt.Errorf("无效的 WebP 文件头")
 	}
 
+	const maxWebPChunkSize = 100 << 20 // 100 MB — 防止恶意文件触发超大内存分配 (DoS)
+
 	for {
 		chunkHeader := make([]byte, 8)
 		if _, err := io.ReadFull(src, chunkHeader); err != nil {
@@ -202,7 +204,7 @@ func decodeWebPDimensions(src io.ReadSeeker) (int, int, error) {
 		}
 		chunkType := string(chunkHeader[0:4])
 		chunkSize := int(binary.LittleEndian.Uint32(chunkHeader[4:8]))
-		if chunkSize < 0 {
+		if chunkSize < 0 || chunkSize > maxWebPChunkSize {
 			return 0, 0, fmt.Errorf("无效的 WebP chunk")
 		}
 

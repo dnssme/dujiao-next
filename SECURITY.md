@@ -150,6 +150,7 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 第 8 轮 | 模型定义/gorm 标签 | 3 低-中 | 3 ✅ | 0 |
 | 第 9 轮 | 支付集成安全 | 1 高 | 1 ✅ | 0 |
 | 第 10 轮 | 全量回归+CodeQL | 0（CodeQL 0 alerts） | — | 0 |
+| 第 11 轮 | CIS/PCI-DSS 深度合规审查 | 4 中 | 4 ✅ | 0 |
 
 **最终结论：所有发现的安全问题已修复，未发现未修复的高危或严重安全漏洞。**
 
@@ -175,6 +176,10 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 | 16 | 中 | Admin 模型缺少 UpdatedAt 字段 | `admin.go` 添加 `UpdatedAt time.Time` |
 | 17 | 低 | Product/Banner UpdatedAt 缺少 gorm index | 添加 `gorm:"index"` 标签 |
 | 18 | 高 | 支付宝回调 sign_type 可被降级攻击 | `alipay.go` 配置 sign_type 优先于回调参数 |
+| 19 | 中 | GORM SQL 日志生产环境使用 Info 级别，泄露敏感查询 (PCI-DSS 10.2) | `models/db.go` 添加 `InitDBWithMode()`，release 模式使用 `logger.Warn` |
+| 20 | 中 | X-Request-ID 头未校验，可导致日志注入 (CIS 审计日志完整性) | `middleware.go` 添加 `isValidRequestID()` 格式校验 |
+| 21 | 低 | 上传目录权限 0755 过宽 (CIS 4.6) | `upload_service.go` 改为 `0750` |
+| 22 | 中 | WebP 解析器无 chunk 大小限制，可导致内存 DoS | `upload_service.go` 添加 `maxWebPChunkSize = 100MB` 限制 |
 
 残留低风险项（设计决策/行业通用做法，风险可控）：
 1. `v-html` 使用 — 内容来源为管理后台（已认证 + RBAC），非用户输入
@@ -195,8 +200,8 @@ WHERE id = ? AND (usage_limit = 0 OR used_count + 1 <= usage_limit)
 ## 审查声明
 
 - 审查日期：2026-02-28
-- 审查轮次：10 轮完整审查（5 轮初审 + 5 轮深度复查）
+- 审查轮次：11 轮完整审查（5 轮初审 + 5 轮深度复查 + 1 轮 CIS/PCI-DSS 合规深度审查）
 - 审查范围：全部 Go API 源代码（245 个 .go 文件、46 个测试文件）、Vue 3 前端源代码（User + Admin）、Docker/NGINX 配置、支付集成（7 种支付渠道）
-- 审查方法：人工代码审查 × 10 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）× 2
-- 已修复：7 个高危问题 + 10 个中危问题 + 1 个低危问题（共 18 项）
+- 审查方法：人工代码审查 × 11 轮 + 自动化测试（go test 17 套件全部通过）+ CodeQL 安全扫描（0 alerts）× 2
+- 已修复：7 个高危问题 + 14 个中危问题 + 1 个低危问题（共 22 项）
 - 结论：**所有发现的安全问题已修复，未发现未修复的高危漏洞**
