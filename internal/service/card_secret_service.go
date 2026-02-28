@@ -54,7 +54,9 @@ func (s *CardSecretService) CreateCardSecretBatch(input CreateCardSecretBatchInp
 	if input.ProductID == 0 {
 		return nil, 0, ErrCardSecretInvalid
 	}
-	if len(input.Secrets) == 0 {
+	// PCI-DSS 6.5.10 — 限制单批次最大条目数，防止资源耗尽攻击
+	const maxBatchSize = 10000
+	if len(input.Secrets) == 0 || len(input.Secrets) > maxBatchSize {
 		return nil, 0, ErrCardSecretInvalid
 	}
 

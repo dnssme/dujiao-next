@@ -20,8 +20,8 @@ import (
 func (h *Handler) HandleEpusdtCallback(c *gin.Context) bool {
 	log := requestLog(c)
 
-	// 读取请求体
-	body, err := io.ReadAll(c.Request.Body)
+	// 读取请求体（限制最大 1MB，防止 DoS）
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		return false
 	}
@@ -95,9 +95,9 @@ func (h *Handler) HandleEpusdtCallback(c *gin.Context) bool {
 
 	// 构建回调输入
 	amount := models.Money{}
-	amountFloat := data.GetAmount()
-	if amountFloat > 0 {
-		amount = models.NewMoneyFromDecimal(decimal.NewFromFloat(amountFloat))
+	amountDecimal := data.GetAmountDecimal()
+	if amountDecimal.GreaterThan(decimal.Zero) {
+		amount = models.NewMoneyFromDecimal(amountDecimal)
 	}
 
 	now := time.Now()

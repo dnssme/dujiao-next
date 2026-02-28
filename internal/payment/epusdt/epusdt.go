@@ -3,18 +3,22 @@ package epusdt
 import (
 	"context"
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dujiao-next/internal/constants"
+
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -121,6 +125,44 @@ func (c *CallbackData) GetActualAmount() float64 {
 	return 0
 }
 
+// GetAmountDecimal 获取金额（decimal.Decimal），避免 float64 精度丢失。
+func (c *CallbackData) GetAmountDecimal() decimal.Decimal {
+	switch v := c.Amount.(type) {
+	case string:
+		d, err := decimal.NewFromString(v)
+		if err == nil {
+			return d
+		}
+	case float64:
+		return decimal.NewFromFloat(v)
+	case json.Number:
+		d, err := decimal.NewFromString(v.String())
+		if err == nil {
+			return d
+		}
+	}
+	return decimal.Zero
+}
+
+// GetActualAmountDecimal 获取实际金额（decimal.Decimal），避免 float64 精度丢失。
+func (c *CallbackData) GetActualAmountDecimal() decimal.Decimal {
+	switch v := c.ActualAmount.(type) {
+	case string:
+		d, err := decimal.NewFromString(v)
+		if err == nil {
+			return d
+		}
+	case float64:
+		return decimal.NewFromFloat(v)
+	case json.Number:
+		d, err := decimal.NewFromString(v.String())
+		if err == nil {
+			return d
+		}
+	}
+	return decimal.Zero
+}
+
 // GetAmountRaw 获取金额的原始值，用于签名验证，避免 float64 精度丢失。
 func (c *CallbackData) GetAmountRaw() interface{} {
 	return c.Amount
@@ -156,14 +198,23 @@ func ValidateConfig(cfg *Config) error {
 	if strings.TrimSpace(cfg.GatewayURL) == "" {
 		return fmt.Errorf("%w: gateway_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.GatewayURL)); err != nil {
+		return fmt.Errorf("%w: gateway_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.AuthToken) == "" {
 		return fmt.Errorf("%w: auth_token is required", ErrConfigInvalid)
 	}
 	if strings.TrimSpace(cfg.NotifyURL) == "" {
 		return fmt.Errorf("%w: notify_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.NotifyURL)); err != nil {
+		return fmt.Errorf("%w: notify_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.ReturnURL) == "" {
 		return fmt.Errorf("%w: return_url is required", ErrConfigInvalid)
+	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.ReturnURL)); err != nil {
+		return fmt.Errorf("%w: return_url is not a valid URL", ErrConfigInvalid)
 	}
 	return nil
 }
@@ -201,15 +252,15 @@ func CreatePayment(ctx context.Context, cfg *Config, input CreateInput) (*Create
 		returnURL = cfg.ReturnURL
 	}
 
-	// 将 amount 从字符串转换为 float64
-	amountFloat, err := strconv.ParseFloat(input.Amount, 64)
-	if err != nil {
+	// 使用 decimal 校验金额精度，通过 json.Number 发送避免 float64 精度丢失。
+	amountDecimal, err := decimal.NewFromString(input.Amount)
+	if err != nil || amountDecimal.LessThanOrEqual(decimal.Zero) {
 		return nil, fmt.Errorf("%w: invalid amount", ErrConfigInvalid)
 	}
 
 	params := map[string]interface{}{
 		"order_id":     input.OrderNo,
-		"amount":       amountFloat,
+		"amount":       json.Number(amountDecimal.String()),
 		"notify_url":   notifyURL,
 		"redirect_url": returnURL,
 		"trade_type":   cfg.TradeType,
@@ -285,7 +336,8 @@ func VerifyCallback(cfg *Config, data *CallbackData) error {
 	}
 
 	expected := Sign(params, cfg.AuthToken)
-	if !strings.EqualFold(expected, data.Signature) {
+	actual := strings.ToLower(strings.TrimSpace(data.Signature))
+	if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 		return ErrSignatureInvalid
 	}
 	return nil
@@ -378,7 +430,7 @@ func postJSON(ctx context.Context, endpoint string, params map[string]interface{
 		return nil, fmt.Errorf("http status %d", resp.StatusCode)
 	}
 
-	return io.ReadAll(resp.Body)
+	return io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 }
 
 // IsSupportedChannelType 判断是否支持的渠道类型

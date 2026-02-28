@@ -16,6 +16,8 @@ import (
 
 const (
 	walletDefaultCurrency = "CNY"
+	// maxWalletTxnAmount 单笔钱包交易上限 — PCI-DSS 6.5.5（防止精度溢出/资源滥用）。
+	maxWalletTxnAmount = 10_000_000 // 1000 万
 )
 
 // WalletService 钱包服务
@@ -145,7 +147,7 @@ func (s *WalletService) Recharge(input WalletRechargeInput) (*models.WalletAccou
 		return nil, nil, ErrWalletAccountNotFound
 	}
 	amount := input.Amount.Decimal.Round(2)
-	if amount.LessThanOrEqual(decimal.Zero) {
+	if amount.LessThanOrEqual(decimal.Zero) || amount.GreaterThan(decimal.NewFromInt(maxWalletTxnAmount)) {
 		return nil, nil, ErrWalletInvalidAmount
 	}
 	reference := buildWalletReference("recharge", input.UserID)
@@ -160,7 +162,7 @@ func (s *WalletService) AdminAdjustBalance(input WalletAdjustInput) (*models.Wal
 		return nil, nil, ErrWalletAccountNotFound
 	}
 	delta := input.Delta.Decimal.Round(2)
-	if delta.IsZero() {
+	if delta.IsZero() || delta.Abs().GreaterThan(decimal.NewFromInt(maxWalletTxnAmount)) {
 		return nil, nil, ErrWalletInvalidAmount
 	}
 	reference := buildWalletReference("admin_adjust", input.UserID)

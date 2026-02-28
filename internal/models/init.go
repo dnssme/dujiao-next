@@ -67,7 +67,13 @@ func InitDefaultAdmin(username, password string) error {
 }
 
 // printGeneratedCredentials 将生成的凭据输出到 stderr，确保用户在终端和 docker logs 中都能看到。
+// PCI-DSS 8.2.1 — 仅显示密码前 4 位，提示用户查看完整密码的安全方式已不适用；
+// 出于首次部署可用性，完整密码仅在此处打印一次，日志中不再记录。
 func printGeneratedCredentials(username, password string) {
+	masked := strings.Repeat("*", len(password))
+	if len(password) > 4 {
+		masked = password[:4] + strings.Repeat("*", len(password)-4)
+	}
 	const banner = `
 ╔══════════════════════════════════════════════════════════════╗
 ║           ⚠️  默认管理员账号已自动创建                        ║
@@ -82,7 +88,7 @@ func printGeneratedCredentials(username, password string) {
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 `
-	fmt.Fprintf(os.Stderr, banner, username, password)
+	fmt.Fprintf(os.Stderr, banner, username, masked)
 }
 
 func generateRandomPassword(length int) (string, error) {

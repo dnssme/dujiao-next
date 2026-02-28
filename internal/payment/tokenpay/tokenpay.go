@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -116,11 +117,24 @@ func ValidateConfig(cfg *Config) error {
 	if strings.TrimSpace(cfg.GatewayURL) == "" {
 		return fmt.Errorf("%w: gateway_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.GatewayURL)); err != nil {
+		return fmt.Errorf("%w: gateway_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.NotifySecret) == "" {
 		return fmt.Errorf("%w: notify_secret is required", ErrConfigInvalid)
 	}
 	if strings.TrimSpace(cfg.Currency) == "" {
 		return fmt.Errorf("%w: currency is required", ErrConfigInvalid)
+	}
+	if u := strings.TrimSpace(cfg.NotifyURL); u != "" {
+		if _, err := url.ParseRequestURI(u); err != nil {
+			return fmt.Errorf("%w: notify_url is not a valid URL", ErrConfigInvalid)
+		}
+	}
+	if u := strings.TrimSpace(cfg.RedirectURL); u != "" {
+		if _, err := url.ParseRequestURI(u); err != nil {
+			return fmt.Errorf("%w: redirect_url is not a valid URL", ErrConfigInvalid)
+		}
 	}
 	return nil
 }
@@ -253,7 +267,8 @@ func VerifyCallback(data *CallbackData, notifySecret string) error {
 		return ErrConfigInvalid
 	}
 	expected := SignPayload(data.Raw, notifySecret)
-	if !strings.EqualFold(expected, strings.TrimSpace(data.Signature)) {
+	actual := strings.ToLower(strings.TrimSpace(data.Signature))
+	if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 		return ErrSignatureInvalid
 	}
 	return nil
@@ -520,7 +535,7 @@ func postJSON(ctx context.Context, endpoint string, payload map[string]interface
 		return nil, err
 	}
 	defer resp.Body.Close()
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +557,7 @@ func getJSON(ctx context.Context, endpoint string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err
 	}

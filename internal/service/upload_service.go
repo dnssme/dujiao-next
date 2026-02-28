@@ -120,8 +120,8 @@ func (s *UploadService) SaveFile(file *multipart.FileHeader, scene string) (stri
 		return "", err
 	}
 
-	// 保存文件
-	dst, err := os.Create(savePath)
+	// 保存文件（CIS 4.6 — 显式设置文件权限，不依赖 umask）
+	dst, err := os.OpenFile(savePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0640)
 	if err != nil {
 		return "", err
 	}

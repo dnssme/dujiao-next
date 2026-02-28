@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -113,14 +114,23 @@ func ValidateConfig(cfg *Config) error {
 	if strings.TrimSpace(cfg.GatewayURL) == "" {
 		return fmt.Errorf("%w: gateway_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.GatewayURL)); err != nil {
+		return fmt.Errorf("%w: gateway_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.MerchantID) == "" {
 		return fmt.Errorf("%w: merchant_id is required", ErrConfigInvalid)
 	}
 	if strings.TrimSpace(cfg.NotifyURL) == "" {
 		return fmt.Errorf("%w: notify_url is required", ErrConfigInvalid)
 	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.NotifyURL)); err != nil {
+		return fmt.Errorf("%w: notify_url is not a valid URL", ErrConfigInvalid)
+	}
 	if strings.TrimSpace(cfg.ReturnURL) == "" {
 		return fmt.Errorf("%w: return_url is required", ErrConfigInvalid)
+	}
+	if _, err := url.ParseRequestURI(strings.TrimSpace(cfg.ReturnURL)); err != nil {
+		return fmt.Errorf("%w: return_url is not a valid URL", ErrConfigInvalid)
 	}
 	switch cfg.EpayVersion {
 	case VersionV2:
@@ -271,7 +281,8 @@ func VerifyCallback(cfg *Config, form map[string][]string) error {
 		return verifyRSA(content, sign, cfg.PublicKey)
 	default:
 		expected := signMD5(content + cfg.MerchantKey)
-		if !strings.EqualFold(expected, sign) {
+		actual := strings.ToLower(strings.TrimSpace(sign))
+		if subtle.ConstantTimeCompare([]byte(expected), []byte(actual)) != 1 {
 			return ErrSignatureInvalid
 		}
 	}
@@ -395,7 +406,7 @@ func postForm(ctx context.Context, endpoint string, params map[string]string) ([
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, ErrRequestFailed
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, err
 	}

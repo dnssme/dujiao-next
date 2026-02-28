@@ -3,7 +3,7 @@
 server:
   host: 0.0.0.0
   port: 8080
-  mode: debug  # debug 或 release
+  mode: debug  # ⚠️ 生产环境请改为 release
 
 log:
   dir: ""  # 为空时使用当前运行目录/logs
@@ -23,11 +23,11 @@ database:
     conn_max_idle_time_seconds: 0  # 0 表示不限制
 
 jwt:
-  secret: your-secret-key-change-in-production-please
+  secret: your-secret-key-change-in-production-please  # ⚠️ 生产环境必须替换为 32+ 字符的强随机密钥
   expire_hours: 24  # Token 有效期（小时）
 
 user_jwt:
-  secret: user-secret-key-change-in-production-please
+  secret: user-secret-key-change-in-production-please  # ⚠️ 生产环境必须替换为 32+ 字符的强随机密钥
   expire_hours: 24  # 用户 Token 有效期（小时）
   remember_me_expire_hours: 168  # 记住我 Token 有效期（小时）
 
@@ -79,7 +79,7 @@ upload:
 
 cors:
   allowed_origins:
-    - "*"
+    - "*"  # ⚠️ 生产环境请改为具体域名，如 ["https://your-domain.com"]
   allowed_methods:
     - GET
     - POST
@@ -95,7 +95,7 @@ cors:
     - Cache-Control
     - X-Requested-With
     - X-CSRF-Token
-  allow_credentials: true
+  allow_credentials: false
   max_age: 600
 
 security:

@@ -23,7 +23,7 @@ const (
 
 func (h *Handler) HandleWechatCallback(c *gin.Context) bool {
 	log := requestLog(c)
-	body, err := io.ReadAll(c.Request.Body)
+	body, err := io.ReadAll(io.LimitReader(c.Request.Body, 1<<20))
 	if err != nil {
 		log.Warnw("wechat_callback_body_read_failed", "error", err)
 		return false

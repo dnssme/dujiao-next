@@ -149,4 +149,5 @@ var (
 	ErrNotificationConfigInvalid       = errors.New("notification config invalid")
 	ErrNotificationSendFailed          = errors.New("notification send failed")
 	ErrNotificationEventInvalid        = errors.New("notification event invalid")
+	ErrSettingKeyNotAllowed            = errors.New("setting key not allowed")
 )

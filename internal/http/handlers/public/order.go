@@ -17,7 +17,7 @@ import (
 type OrderItemRequest struct {
 	ProductID       uint   `json:"product_id" binding:"required"`
 	SKUID           uint   `json:"sku_id"`
-	Quantity        int    `json:"quantity" binding:"required"`
+	Quantity        int    `json:"quantity" binding:"required,min=1,max=10000"`
 	FulfillmentType string `json:"fulfillment_type"`
 }
 

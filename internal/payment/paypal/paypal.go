@@ -524,7 +524,7 @@ func getAccessToken(ctx context.Context, cfg *Config) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", fmt.Errorf("%w: read token response failed", ErrAuthFailed)
 	}
@@ -566,7 +566,7 @@ func doJSONRequest(ctx context.Context, cfg *Config, method, endpoint, token str
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("%w: read response failed", ErrRequestFailed)
 	}

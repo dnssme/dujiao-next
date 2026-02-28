@@ -1299,6 +1299,40 @@ func isPaymentStatusValid(status string) bool {
 	}
 }
 
+// allowedPaymentTransitions 定义合法的支付状态迁移。
+// 支付网关存在延迟成功通知场景，因此 failed → success 和 expired → success 被允许。
+var allowedPaymentTransitions = map[string]map[string]bool{
+	constants.PaymentStatusInitiated: {
+		constants.PaymentStatusPending: true,
+		constants.PaymentStatusSuccess: true,
+		constants.PaymentStatusFailed:  true,
+		constants.PaymentStatusExpired: true,
+	},
+	constants.PaymentStatusPending: {
+		constants.PaymentStatusSuccess: true,
+		constants.PaymentStatusFailed:  true,
+		constants.PaymentStatusExpired: true,
+	},
+	constants.PaymentStatusFailed: {
+		constants.PaymentStatusSuccess: true,
+	},
+	constants.PaymentStatusExpired: {
+		constants.PaymentStatusSuccess: true,
+	},
+}
+
+// isPaymentTransitionAllowed 检查从 current 到 target 的支付状态迁移是否被允许。
+func isPaymentTransitionAllowed(current, target string) bool {
+	if current == target {
+		return true
+	}
+	nexts, ok := allowedPaymentTransitions[current]
+	if !ok {
+		return false
+	}
+	return nexts[target]
+}
+
 func shouldAutoFulfill(order *models.Order) bool {
 	if order == nil || len(order.Items) == 0 {
 		return false
