@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,11 +26,16 @@ func (j *JSON) Scan(value interface{}) error {
 		*j = make(JSON)
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return nil
+	var data []byte
+	switch v := value.(type) {
+	case []byte:
+		data = v
+	case string:
+		data = []byte(v)
+	default:
+		return fmt.Errorf("models.JSON.Scan: unsupported type %T", value)
 	}
-	return json.Unmarshal(bytes, j)
+	return json.Unmarshal(data, j)
 }
 
 // StringArray 字符串数组类型，用于存储tags、images等
@@ -49,11 +55,16 @@ func (s *StringArray) Scan(value interface{}) error {
 		*s = StringArray{}
 		return nil
 	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return nil
+	var data []byte
+	switch v := value.(type) {
+	case []byte:
+		data = v
+	case string:
+		data = []byte(v)
+	default:
+		return fmt.Errorf("models.StringArray.Scan: unsupported type %T", value)
 	}
-	return json.Unmarshal(bytes, s)
+	return json.Unmarshal(data, s)
 }
 
 // Category 分类表

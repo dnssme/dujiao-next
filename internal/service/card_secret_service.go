@@ -2,11 +2,12 @@ package service
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"encoding/csv"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"mime/multipart"
 	"strconv"
 	"strings"
@@ -493,8 +494,11 @@ func parseCSVSecrets(reader io.Reader) ([]string, error) {
 
 func generateBatchNo() string {
 	now := time.Now().Format("20060102150405")
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return fmt.Sprintf("BATCH-%s-%04d", now, rng.Intn(10000))
+	buf := make([]byte, 4)
+	if _, err := crand.Read(buf); err != nil {
+		panic("crypto/rand unavailable: " + err.Error())
+	}
+	return fmt.Sprintf("BATCH-%s-%s", now, hex.EncodeToString(buf))
 }
 
 func normalizeCardSecretIDs(ids []uint) []uint {

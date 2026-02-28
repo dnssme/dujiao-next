@@ -36,10 +36,13 @@ RUN chown -R appuser:appgroup /usr/share/nginx/html \
     && chown -R appuser:appgroup /var/cache/nginx /var/log/nginx \
     && touch /var/run/nginx.pid && chown appuser:appgroup /var/run/nginx.pid
 
-EXPOSE 80
+# CIS 4.2 - Run as non-root user
+USER appuser:appgroup
+
+EXPOSE 8080
 
 # CIS 6.1 - Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO /dev/null http://127.0.0.1:80/health || exit 1
+    CMD wget -qO /dev/null http://127.0.0.1:8080/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

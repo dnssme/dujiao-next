@@ -27,7 +27,16 @@ func (e passwordPolicyError) Args() []interface{} {
 	return e.args
 }
 
+// BcryptMaxPasswordBytes is the maximum number of bytes bcrypt will hash.
+// Passwords longer than this are silently truncated, so we reject them to
+// avoid giving users a false sense of security (CIS 5.2).
+const BcryptMaxPasswordBytes = 72
+
 func validatePassword(policy config.PasswordPolicyConfig, password string) error {
+	if len(password) > BcryptMaxPasswordBytes {
+		return passwordPolicyError{key: "error.password_max_length", args: []interface{}{BcryptMaxPasswordBytes}}
+	}
+
 	if policy.MinLength <= 0 &&
 		!policy.RequireUpper &&
 		!policy.RequireLower &&

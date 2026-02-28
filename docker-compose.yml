@@ -57,6 +57,11 @@ services:
           cpus: "0.25"
           memory: 64M
 
+    # ── CIS 5.12 - Mount root filesystem as read-only ────────
+    read_only: true
+    tmpfs:
+      - /tmp
+
     # ── CIS 5.12 / PCI-DSS 6.4.2 - 安全加固 ─────────────────
     security_opt:
       - no-new-privileges:true

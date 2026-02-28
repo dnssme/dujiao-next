@@ -58,8 +58,8 @@ queue:
   db: 1
   concurrency: 10
   queues:
-    default: 10
-    critical: 5
+    default: 3
+    critical: 6
 
 upload:
   max_size: 10485760  # 最大上传文件大小（字节，默认 10MB）
@@ -108,7 +108,7 @@ security:
     require_upper: true
     require_lower: true
     require_number: true
-    require_special: false
+    require_special: true
 
 email:
   enabled: true

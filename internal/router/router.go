@@ -161,7 +161,7 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		admin := apiV1.Group("/admin")
 		{
 			// 登录接口（无需鉴权）
-			admin.POST("/login", RateLimitMiddleware(redisClient, adminLoginRule, KeyByIP), adminHandler.AdminLogin)
+			admin.POST("/login", RateLimitMiddleware(redisClient, adminLoginRule, KeyByIPAndJSONField("username")), adminHandler.AdminLogin)
 
 			// 需要鉴权的接口
 			authorized := admin.Use(JWTAuthMiddleware(cfg.JWT.SecretKey, c.AdminRepo), AdminRBACMiddleware(c.AuthzService))

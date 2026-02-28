@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/dujiao-next/internal/constants"
@@ -309,6 +310,10 @@ func (r *GormDashboardRepository) GetPaymentTrends(startAt, endAt time.Time) ([]
 	for _, item := range amountRows {
 		push(item.Day)
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Day < result[j].Day
+	})
 
 	return result, nil
 }

@@ -595,11 +595,11 @@ func toMinorAmount(amount string, currency string) (int64, error) {
 		return 0, fmt.Errorf("%w: amount must be greater than zero", ErrConfigInvalid)
 	}
 	scale := currencyScale(currency)
-	minor := parsed.Shift(int32(scale)).Round(0)
-	if !minor.Equal(minor.Truncate(0)) {
-		return 0, fmt.Errorf("%w: amount precision is invalid", ErrConfigInvalid)
+	shifted := parsed.Shift(int32(scale))
+	if !shifted.Equal(shifted.Truncate(0)) {
+		return 0, fmt.Errorf("%w: amount precision exceeds currency scale", ErrConfigInvalid)
 	}
-	return minor.IntPart(), nil
+	return shifted.Truncate(0).IntPart(), nil
 }
 
 func fromMinorAmount(minor int64, currency string) string {

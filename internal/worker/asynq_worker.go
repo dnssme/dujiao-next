@@ -16,6 +16,11 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// wrapSkipRetry wraps a non-retryable error so asynq will not retry the task.
+func wrapSkipRetry(err error) error {
+	return fmt.Errorf("%w: %w", asynq.SkipRetry, err)
+}
+
 // Consumer 异步任务消费者
 type Consumer struct {
 	*provider.Container
@@ -49,7 +54,7 @@ func (c *Consumer) handleOrderStatusEmail(_ context.Context, task *asynq.Task) e
 	var payload queue.OrderStatusEmailPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Warnw("worker_order_status_email_unmarshal_failed", "error", err)
-		return err
+		return wrapSkipRetry(err)
 	}
 	if payload.OrderID == 0 {
 		logger.Debugw("worker_order_status_email_skip_invalid_payload", "order_id", payload.OrderID)
@@ -126,7 +131,7 @@ func (c *Consumer) handleOrderAutoFulfill(_ context.Context, task *asynq.Task) e
 	var payload queue.OrderAutoFulfillPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Warnw("worker_order_auto_fulfill_unmarshal_failed", "error", err)
-		return err
+		return wrapSkipRetry(err)
 	}
 	if payload.OrderID == 0 {
 		logger.Debugw("worker_order_auto_fulfill_skip_invalid_payload", "order_id", payload.OrderID)
@@ -163,7 +168,7 @@ func (c *Consumer) handleOrderTimeoutCancel(_ context.Context, task *asynq.Task)
 	var payload queue.OrderTimeoutCancelPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Warnw("worker_order_timeout_cancel_unmarshal_failed", "error", err)
-		return err
+		return wrapSkipRetry(err)
 	}
 	if payload.OrderID == 0 {
 		logger.Debugw("worker_order_timeout_cancel_skip_invalid_payload", "order_id", payload.OrderID)
@@ -201,7 +206,7 @@ func (c *Consumer) handleWalletRechargeExpire(_ context.Context, task *asynq.Tas
 	var payload queue.WalletRechargeExpirePayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Warnw("worker_wallet_recharge_expire_unmarshal_failed", "error", err)
-		return err
+		return wrapSkipRetry(err)
 	}
 	if payload.PaymentID == 0 {
 		logger.Debugw("worker_wallet_recharge_expire_skip_invalid_payload", "payment_id", payload.PaymentID)
@@ -242,7 +247,7 @@ func (c *Consumer) handleNotificationDispatch(ctx context.Context, task *asynq.T
 	var payload queue.NotificationDispatchPayload
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Warnw("worker_notification_dispatch_unmarshal_failed", "error", err)
-		return err
+		return wrapSkipRetry(err)
 	}
 	if strings.TrimSpace(payload.EventType) == "" {
 		logger.Debugw("worker_notification_dispatch_skip_empty_event")

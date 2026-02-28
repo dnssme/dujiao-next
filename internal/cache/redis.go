@@ -36,11 +36,18 @@ func InitRedis(cfg *config.RedisConfig) error {
 		redisPrefix = constants.RedisPrefixDefault
 	}
 
-	redisClient = redis.NewClient(&redis.Options{
+	client := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", addr, port),
 		Password: cfg.Password,
 		DB:       cfg.DB,
 	})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := client.Ping(ctx).Err(); err != nil {
+		_ = client.Close()
+		return fmt.Errorf("redis ping failed: %w", err)
+	}
+	redisClient = client
 	redisEnabled = true
 	return nil
 }

@@ -1239,10 +1239,15 @@ const channelTypeLabel = (value?: string) => {
 onMounted(() => {
   if (!orderNoQuery.value) return
   const saved = localStorage.getItem('guest_order_auth')
-  const savedAuth = saved ? JSON.parse(saved) : {}
+  let savedAuth: Record<string, unknown> = {}
+  try {
+    savedAuth = saved ? JSON.parse(saved) : {}
+  } catch {
+    savedAuth = {}
+  }
   guestAuth.value = {
-    email: savedAuth.email || '',
-    order_password: savedAuth.order_password || '',
+    email: String(savedAuth.email || ''),
+    order_password: String(savedAuth.order_password || ''),
   }
   debouncedLoadOrder()
   void loadWallet()

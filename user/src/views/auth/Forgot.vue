@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserAuthStore } from '../../stores/userAuth'
 import { useI18n } from 'vue-i18n'
@@ -247,5 +247,12 @@ const handleReset = debounceAsync(performReset, 200)
 
 onMounted(async () => {
   await appStore.loadConfig(true)
+})
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer)
+    timer = undefined
+  }
 })
 </script>

@@ -64,7 +64,7 @@ func applyDBPool(sqlDB *sql.DB, pool DBPoolConfig) {
 	if pool.MaxOpenConns > 0 {
 		sqlDB.SetMaxOpenConns(pool.MaxOpenConns)
 	}
-	if pool.MaxIdleConns >= 0 {
+	if pool.MaxIdleConns > 0 {
 		sqlDB.SetMaxIdleConns(pool.MaxIdleConns)
 	}
 	if pool.ConnMaxLifetimeSeconds > 0 {
