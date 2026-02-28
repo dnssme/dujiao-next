@@ -50,7 +50,7 @@ dujiao-next/
 ├── config.yml.example          # API 配置模板
 ├── .env.example                # 环境变量模板
 ├── Dockerfile                  # API Docker 构建（CIS 加固）
-├── docker-compose.yml          # 全栈 Docker Compose 编排
+├── docker-compose.yml          # API Docker Compose 编排
 ├── SECURITY.md                 # 安全审查报告
 └── DEPLOYMENT.md               # 部署指南
 ```
@@ -165,7 +165,7 @@ docker run -d \
 
 ### Docker Compose 部署（推荐）
 
-项目提供了符合 CIS Docker Benchmark 和 PCI-DSS 安全基准的全栈 `docker-compose.yml`：
+项目提供了符合 CIS Docker Benchmark 和 PCI-DSS 安全基准的 `docker-compose.yml`（仅包含 API 服务）：
 
 ```bash
 # 1. 准备配置文件
@@ -173,25 +173,19 @@ cp config.yml.example config.yml
 cp .env.example .env
 
 # 2. 修改配置
-vim config.yml  # 修改 JWT secret、数据库、Redis 密码等
-vim .env        # 修改 Redis 密码（需与 config.yml 一致）
+vim config.yml  # 修改 JWT secret、Redis 地址和密码等
 
-# 3. 启动全栈（API + User + Admin + NGINX + Redis）
+# 3. 启动 API
 docker compose up -d
 
 # 4. 查看日志（首次启动时管理员凭据会显示在这里）
 docker compose logs -f dujiao-api
 
-# 5. 访问
-# 用户前台: http://localhost
-# 管理后台: http://localhost:81
-# API:      http://localhost/api/v1/public/config
-
-# 6. 停止服务
-docker compose down
+# 5. 验证
+curl http://127.0.0.1:8080/health
 ```
 
-> 📖 详细部署教程请参见 [DEPLOYMENT.md](./DEPLOYMENT.md)
+> NGINX、Redis 等组件请自行部署。详见 [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ## ⚙️ 配置说明
 
