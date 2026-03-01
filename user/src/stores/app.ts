@@ -17,12 +17,18 @@ export const useAppStore = defineStore('app', () => {
 
     // 全局响应式 SEO 配置
     useHead({
+        htmlAttrs: {
+            lang: () => locale.value || 'zh-CN',
+        },
         title: () => {
             const seo = config.value?.seo
             if (!seo) return undefined
             const lang = locale.value
             return seo.title && seo.title[lang] ? seo.title[lang] : undefined
         },
+        link: () => [
+            { rel: 'canonical', href: window.location.origin + window.location.pathname },
+        ],
         meta: () => {
             const seo = config.value?.seo
             if (!seo) return []
@@ -46,7 +52,7 @@ export const useAppStore = defineStore('app', () => {
                 tags.push({ property: 'og:description', content: seo.description[lang] })
             }
             tags.push({ property: 'og:url', content: window.location.href })
-            // 注意：全局设置通常可以设置一个通用的 default_og_image
+            tags.push({ property: 'og:locale', content: lang })
 
             // Twitter Card 标签
             tags.push({ name: 'twitter:card', content: 'summary_large_image' })

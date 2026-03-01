@@ -104,6 +104,7 @@ import { postAPI } from '../api'
 import { getImageUrl } from '../utils/image'
 import { processHtmlForDisplay } from '../utils/content'
 import { debounceAsync } from '../utils/debounce'
+import { useHead } from '@unhead/vue'
 
 const route = useRoute()
 const { t } = useI18n()
@@ -152,6 +153,53 @@ const loadPost = async () => {
 }
 
 const debouncedLoadPost = debounceAsync(loadPost, 300)
+
+useHead({
+  title: () => post.value ? getLocalizedText(post.value.title) : '',
+  link: () => {
+    if (!post.value) return []
+    return [{ rel: 'canonical', href: window.location.origin + `/blog/${post.value.slug}` }]
+  },
+  meta: () => {
+    if (!post.value) return []
+    const tags = []
+    const title = getLocalizedText(post.value.title)
+    const summary = getLocalizedText(post.value.summary)
+
+    if (summary) tags.push({ name: 'description', content: summary })
+
+    tags.push({ property: 'og:type', content: 'article' })
+    if (title) tags.push({ property: 'og:title', content: title })
+    if (summary) tags.push({ property: 'og:description', content: summary })
+    if (post.value.thumbnail) tags.push({ property: 'og:image', content: getImageUrl(post.value.thumbnail) })
+    tags.push({ property: 'og:url', content: window.location.origin + `/blog/${post.value.slug}` })
+    if (post.value.created_at) tags.push({ property: 'article:published_time', content: post.value.created_at })
+
+    tags.push({ name: 'twitter:card', content: 'summary_large_image' })
+    if (title) tags.push({ name: 'twitter:title', content: title })
+    if (summary) tags.push({ name: 'twitter:description', content: summary })
+    if (post.value.thumbnail) tags.push({ name: 'twitter:image', content: getImageUrl(post.value.thumbnail) })
+
+    return tags
+  },
+  script: () => {
+    if (!post.value) return []
+    const title = getLocalizedText(post.value.title)
+    const summary = getLocalizedText(post.value.summary)
+    const jsonLd: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: title,
+      description: summary,
+      url: window.location.origin + `/blog/${post.value.slug}`,
+      datePublished: post.value.published_at || post.value.created_at,
+    }
+    if (post.value.thumbnail) {
+      jsonLd.image = getImageUrl(post.value.thumbnail)
+    }
+    return [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) }]
+  }
+})
 
 onMounted(() => {
   debouncedLoadPost()

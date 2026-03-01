@@ -3,7 +3,7 @@
     <section class="relative z-10 border-b theme-border pt-24 pb-10">
       <div class="container mx-auto px-4">
         <div class="relative overflow-hidden rounded-2xl border theme-panel">
-          <img v-if="!bannerLoading && heroImage" :src="heroImage" class="absolute inset-0 h-full w-full object-cover" />
+          <img v-if="!bannerLoading && heroImage" :src="heroImage" :alt="heroTitle" class="absolute inset-0 h-full w-full object-cover" />
           <div class="absolute inset-0 bg-black/50"></div>
 
             <div v-if="bannerLoading" class="relative flex min-h-[420px] flex-col justify-between p-8 md:p-12">
@@ -129,6 +129,7 @@
                 v-if="product.images && getFirstImageUrl(product.images)"
                 :src="getFirstImageUrl(product.images)"
                 :alt="getLocalizedText(product.title)"
+                loading="lazy"
                 class="h-full w-full object-cover transition duration-500"
                 :class="isSoldOut(product) ? 'grayscale brightness-75' : 'group-hover:scale-105'"
               />

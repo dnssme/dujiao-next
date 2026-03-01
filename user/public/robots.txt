@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /products
+Allow: /blog
+Allow: /notice
+Allow: /about
+Allow: /terms
+Allow: /privacy
+
+Disallow: /me
+Disallow: /me/
+Disallow: /auth/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /pay
+Disallow: /guest/
+Disallow: /api/
+
+Sitemap: /sitemap.xml
