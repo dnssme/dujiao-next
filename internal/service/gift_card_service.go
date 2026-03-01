@@ -320,9 +320,9 @@ func (s *GiftCardService) ExportGiftCards(ids []uint, format string) ([]byte, st
 		}
 		record := []string{
 			strconv.FormatUint(uint64(card.ID), 10),
-			batchNo,
-			card.Name,
-			card.Code,
+			sanitizeCSVField(batchNo),
+			sanitizeCSVField(card.Name),
+			sanitizeCSVField(card.Code),
 			card.Amount.String(),
 			card.Currency,
 			card.Status,

@@ -28,8 +28,11 @@ func applyPagination(query *gorm.DB, page, pageSize int) *gorm.DB {
 	return query.Limit(pageSize).Offset(offset)
 }
 
-// escapeLikePattern 转义 SQL LIKE 模式中的 % 通配符，防止搜索绕过。
-// 注: 不去除 _ (单字符通配符) — 其攻击面极小且合法数据常含下划线。
+// escapeLikePattern 转义 SQL LIKE 模式中的通配符，防止搜索绕过。
+// PCI-DSS 6.5.1 — 去除 % 多字符通配符与反斜杠，阻止大面积模糊匹配。
+// 注: 不去除 _ (单字符通配符) — 其攻击面极小（仅匹配一个字符），
+// 且跨数据库(PostgreSQL/MySQL/SQLite)统一转义 _ 需要额外 ESCAPE 子句，
+// 复杂度与收益不成比例。
 func escapeLikePattern(s string) string {
 	s = strings.ReplaceAll(s, "\\", "")
 	s = strings.ReplaceAll(s, "%", "")
