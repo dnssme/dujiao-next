@@ -30,6 +30,21 @@ var allowedUploadScenes = map[string]struct{}{
 	"category": {},
 }
 
+// defaultAllowedExtensions — CIS 5.2 / PCI-DSS 6.5.8: when no allow-list is
+// configured, only known-safe image extensions are accepted to prevent stored
+// XSS via HTML/SVG uploads.
+var defaultAllowedExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".ico"}
+
+// defaultAllowedTypes mirrors the extension defaults at the MIME level.
+var defaultAllowedTypes = []string{
+	"image/jpeg",
+	"image/png",
+	"image/gif",
+	"image/webp",
+	"image/bmp",
+	"image/x-icon",
+}
+
 // UploadService 文件上传服务
 type UploadService struct {
 	cfg *config.Config
@@ -47,12 +62,14 @@ func (s *UploadService) SaveFile(file *multipart.FileHeader, scene string) (stri
 		return "", fmt.Errorf("文件大小超过限制（最大 %d MB）", s.cfg.Upload.MaxSize/1024/1024)
 	}
 
-	// 获取文件扩展名
+	// 获取文件扩展名 — 始终执行扩展名白名单校验（CIS 5.2 / PCI-DSS 6.5.8）。
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if len(s.cfg.Upload.AllowedExtensions) > 0 {
-		if ext == "" || !isAllowedExtension(ext, s.cfg.Upload.AllowedExtensions) {
-			return "", fmt.Errorf("文件扩展名不被允许: %s", ext)
-		}
+	allowedExts := s.cfg.Upload.AllowedExtensions
+	if len(allowedExts) == 0 {
+		allowedExts = defaultAllowedExtensions
+	}
+	if ext == "" || !isAllowedExtension(ext, allowedExts) {
+		return "", fmt.Errorf("文件扩展名不被允许: %s", ext)
 	}
 
 	// 验证文件类型
@@ -73,9 +90,13 @@ func (s *UploadService) SaveFile(file *multipart.FileHeader, scene string) (stri
 	}
 
 	contentType := http.DetectContentType(buffer)
-	if len(s.cfg.Upload.AllowedTypes) > 0 {
+	allowedTypes := s.cfg.Upload.AllowedTypes
+	if len(allowedTypes) == 0 {
+		allowedTypes = defaultAllowedTypes
+	}
+	{
 		allowed := false
-		for _, t := range s.cfg.Upload.AllowedTypes {
+		for _, t := range allowedTypes {
 			if strings.EqualFold(contentType, t) {
 				allowed = true
 				break
