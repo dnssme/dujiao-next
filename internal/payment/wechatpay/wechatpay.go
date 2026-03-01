@@ -496,8 +496,16 @@ func parseAPIResult(result *core.APIResult) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("%w: read response failed", ErrResponseInvalid)
 	}
 	if result.Response.StatusCode < 200 || result.Response.StatusCode >= 300 {
+		// Extract only the error code from the response body; avoid logging raw body
+		// which may contain merchant-identifying data (PCI-DSS 10.3).
 		if len(respBody) > 0 {
-			return nil, fmt.Errorf("%w: status %d body %s", ErrResponseInvalid, result.Response.StatusCode, strings.TrimSpace(string(respBody)))
+			var errResp struct {
+				Code    string `json:"code"`
+				Message string `json:"message"`
+			}
+			if json.Unmarshal(respBody, &errResp) == nil && errResp.Code != "" {
+				return nil, fmt.Errorf("%w: status %d code %s message %s", ErrResponseInvalid, result.Response.StatusCode, errResp.Code, errResp.Message)
+			}
 		}
 		return nil, fmt.Errorf("%w: status %d", ErrResponseInvalid, result.Response.StatusCode)
 	}
