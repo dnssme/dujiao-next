@@ -65,6 +65,11 @@ func (s *CouponService) ApplyCoupon(subtotal models.Money, code string, userID u
 			return models.Money{}, coupon, ErrCouponPerUserLimit
 		}
 	}
+	// PCI-DSS 6.5.5 — when a per-user limit is configured but the caller is a
+	// guest (userID == 0), reject the coupon to prevent unlimited guest abuse.
+	if coupon.PerUserLimit > 0 && userID == 0 {
+		return models.Money{}, coupon, ErrCouponPerUserLimit
+	}
 
 	eligibleSubtotal, err := s.resolveEligibleSubtotal(coupon, items)
 	if err != nil {

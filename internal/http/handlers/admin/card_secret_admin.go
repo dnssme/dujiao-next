@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mzwrt/dujiao-next/internal/constants"
+	handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 	"github.com/mzwrt/dujiao-next/internal/http/response"
 	"github.com/mzwrt/dujiao-next/internal/service"
 
@@ -256,6 +257,10 @@ func (h *Handler) BatchUpdateCardSecretStatus(c *gin.Context) {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
+	if len(req.IDs) > handlershared.MaxBatchSize {
+		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
+		return
+	}
 
 	rows, err := h.CardSecretService.BatchUpdateCardSecretStatus(req.IDs, req.Status)
 	if err != nil {
@@ -280,6 +285,10 @@ func (h *Handler) BatchDeleteCardSecrets(c *gin.Context) {
 	var req BatchDeleteCardSecretRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
+		return
+	}
+	if len(req.IDs) > handlershared.MaxBatchSize {
+		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
 		return
 	}
 
@@ -308,6 +317,10 @@ func (h *Handler) ExportCardSecrets(c *gin.Context) {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
+	if len(req.IDs) > handlershared.MaxBatchSize {
+		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
+		return
+	}
 
 	content, contentType, err := h.CardSecretService.ExportCardSecrets(req.IDs, req.Format)
 	if err != nil {
@@ -323,6 +336,10 @@ func (h *Handler) ExportCardSecrets(c *gin.Context) {
 	}
 
 	normalizedFormat := strings.ToLower(strings.TrimSpace(req.Format))
+	if normalizedFormat != "csv" && normalizedFormat != "json" && normalizedFormat != "txt" {
+		respondError(c, response.CodeBadRequest, "error.card_secret_invalid", nil)
+		return
+	}
 	filename := "card-secrets-" + time.Now().Format("20060102-150405") + "." + normalizedFormat
 	c.Header("Content-Type", contentType)
 	c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")

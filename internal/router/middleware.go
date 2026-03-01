@@ -94,7 +94,13 @@ func resolveAllowedOrigin(origin string, allowedOrigins []string, allowCredentia
 	}
 	for _, allowed := range allowedOrigins {
 		if allowed == "*" {
+			// PCI-DSS 6.5.7 — AllowCredentials 与通配符不应同时使用。
+			// 此处为兼容性回退：将 * 转为请求来源，并记录警告日志。
 			if allowCredentials && origin != "" {
+				logger.Warnw("cors_wildcard_with_credentials",
+					"origin", origin,
+					"hint", "production should use explicit allowed_origins instead of wildcard",
+				)
 				return origin
 			}
 			return "*"

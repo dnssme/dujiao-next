@@ -68,6 +68,28 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		MessageKey:    "error.rate_limited",
 	}
 
+	verifyCodeRule := RateLimitRule{
+		Prefix:        fmt.Sprintf("%s:rate:verify_code", redisPrefix),
+		WindowSeconds: 60,
+		MaxRequests:   5,
+		BlockSeconds:  300,
+		MessageKey:    "error.rate_limited",
+	}
+	registerRule := RateLimitRule{
+		Prefix:        fmt.Sprintf("%s:rate:register", redisPrefix),
+		WindowSeconds: 300,
+		MaxRequests:   5,
+		BlockSeconds:  600,
+		MessageKey:    "error.rate_limited",
+	}
+	webhookRule := RateLimitRule{
+		Prefix:        fmt.Sprintf("%s:rate:webhook", redisPrefix),
+		WindowSeconds: 60,
+		MaxRequests:   60,
+		BlockSeconds:  120,
+		MessageKey:    "error.rate_limited",
+	}
+
 	// 中间件
 	r.Use(gin.Recovery())
 	r.Use(SecurityHeadersMiddleware())
@@ -111,11 +133,11 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 		// 用户认证接口
 		auth := apiV1.Group("/auth")
 		{
-			auth.POST("/send-verify-code", publicHandler.SendUserVerifyCode)
-			auth.POST("/register", publicHandler.UserRegister)
+			auth.POST("/send-verify-code", RateLimitMiddleware(redisClient, verifyCodeRule, KeyByIPAndJSONField("email")), publicHandler.SendUserVerifyCode)
+			auth.POST("/register", RateLimitMiddleware(redisClient, registerRule, KeyByIPAndJSONField("email")), publicHandler.UserRegister)
 			auth.POST("/login", RateLimitMiddleware(redisClient, loginRule, KeyByIPAndJSONField("email")), publicHandler.UserLogin)
 			auth.POST("/telegram/login", RateLimitMiddleware(redisClient, loginRule, KeyByIP), publicHandler.UserTelegramLogin)
-			auth.POST("/forgot-password", publicHandler.UserForgotPassword)
+			auth.POST("/forgot-password", RateLimitMiddleware(redisClient, verifyCodeRule, KeyByIPAndJSONField("email")), publicHandler.UserForgotPassword)
 		}
 
 		// 用户接口（需鉴权）
@@ -156,10 +178,10 @@ func SetupRouter(cfg *config.Config, c *provider.Container) *gin.Engine {
 			user.POST("/affiliate/withdraws", publicHandler.ApplyAffiliateWithdraw)
 		}
 
-		apiV1.POST("/payments/callback", publicHandler.PaymentCallback)
-		apiV1.GET("/payments/callback", publicHandler.PaymentCallback)
-		apiV1.POST("/payments/webhook/paypal", publicHandler.PaypalWebhook)
-		apiV1.POST("/payments/webhook/stripe", publicHandler.StripeWebhook)
+		apiV1.POST("/payments/callback", RateLimitMiddleware(redisClient, webhookRule, KeyByIP), publicHandler.PaymentCallback)
+		apiV1.GET("/payments/callback", RateLimitMiddleware(redisClient, webhookRule, KeyByIP), publicHandler.PaymentCallback)
+		apiV1.POST("/payments/webhook/paypal", RateLimitMiddleware(redisClient, webhookRule, KeyByIP), publicHandler.PaypalWebhook)
+		apiV1.POST("/payments/webhook/stripe", RateLimitMiddleware(redisClient, webhookRule, KeyByIP), publicHandler.StripeWebhook)
 
 		// 管理员接口
 		admin := apiV1.Group("/admin")

@@ -868,11 +868,15 @@ func (s *OrderService) cancelOrderWithChildren(order *models.Order, rollbackCoup
 			// 订单状态已变（如已支付），放弃取消。
 			return nil
 		}
+		// PCI-DSS 6.5.6 — 子订单同样使用条件更新防止 TOCTOU：
+		// 并发支付回调可能已将子订单标记为 paid/fulfilling，此处仅取消仍处于 pending_payment 的子订单。
 		for _, child := range order.Children {
 			if child.Status == constants.OrderStatusCompleted || child.Status == constants.OrderStatusDelivered {
 				continue
 			}
-			if err := orderRepo.UpdateStatus(child.ID, constants.OrderStatusCanceled, updates); err != nil {
+			if _, err := orderRepo.UpdateStatusConditional(child.ID,
+				[]string{constants.OrderStatusPendingPayment},
+				constants.OrderStatusCanceled, updates); err != nil {
 				return ErrOrderUpdateFailed
 			}
 		}

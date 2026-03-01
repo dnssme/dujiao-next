@@ -103,11 +103,17 @@ func (s *FulfillmentService) CreateManual(input CreateManualInput) (*models.Fulf
 		if err := tx.Create(fulfillment).Error; err != nil {
 			return ErrFulfillmentCreateFailed
 		}
-		if err := tx.Model(&models.Order{}).Where("id = ?", order.ID).Updates(map[string]interface{}{
+		// PCI-DSS 6.5.6 — 条件更新防止将已取消/已完成的订单标记为 delivered（TOCTOU 防护）。
+		result := tx.Model(&models.Order{}).Where("id = ? AND status IN ?", order.ID,
+			[]string{constants.OrderStatusPaid, constants.OrderStatusFulfilling}).Updates(map[string]interface{}{
 			"status":     constants.OrderStatusDelivered,
 			"updated_at": now,
-		}).Error; err != nil {
+		})
+		if result.Error != nil {
 			return ErrOrderUpdateFailed
+		}
+		if result.RowsAffected == 0 {
+			return ErrOrderStatusInvalid
 		}
 		created = fulfillment
 		return nil
@@ -118,6 +124,9 @@ func (s *FulfillmentService) CreateManual(input CreateManualInput) (*models.Fulf
 		}
 		if errors.Is(err, ErrOrderUpdateFailed) {
 			return nil, ErrOrderUpdateFailed
+		}
+		if errors.Is(err, ErrOrderStatusInvalid) {
+			return nil, ErrOrderStatusInvalid
 		}
 		return nil, ErrFulfillmentCreateFailed
 	}
@@ -230,7 +239,9 @@ func (s *FulfillmentService) CreateAuto(orderID uint) (*models.Fulfillment, erro
 			if len(selected) < item.Quantity {
 				need := item.Quantity - len(selected)
 				var availableRows []models.CardSecret
-				query := tx.Where("product_id = ? AND status = ?", item.ProductID, models.CardSecretStatusAvailable)
+				// PCI-DSS 6.5.6 — SELECT FOR UPDATE 防止并发自动发货选中同一行卡密（TOCTOU）。
+				query := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+					Where("product_id = ? AND status = ?", item.ProductID, models.CardSecretStatusAvailable)
 				if item.SKUID > 0 {
 					query = query.Where("sku_id = ?", item.SKUID)
 				}
@@ -273,11 +284,16 @@ func (s *FulfillmentService) CreateAuto(orderID uint) (*models.Fulfillment, erro
 		if err := tx.Create(fulfillment).Error; err != nil {
 			return ErrFulfillmentCreateFailed
 		}
-		if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Updates(map[string]interface{}{
+		// PCI-DSS 6.5.6 — 条件更新防止将非 paid 状态的订单标记为 completed（TOCTOU 防护）。
+		result := tx.Model(&models.Order{}).Where("id = ? AND status = ?", orderID, constants.OrderStatusPaid).Updates(map[string]interface{}{
 			"status":     constants.OrderStatusCompleted,
 			"updated_at": now,
-		}).Error; err != nil {
+		})
+		if result.Error != nil {
 			return ErrOrderUpdateFailed
+		}
+		if result.RowsAffected == 0 {
+			return ErrOrderStatusInvalid
 		}
 		return nil
 	})
@@ -289,6 +305,8 @@ func (s *FulfillmentService) CreateAuto(orderID uint) (*models.Fulfillment, erro
 			return nil, ErrCardSecretInsufficient
 		case errors.Is(err, ErrOrderUpdateFailed):
 			return nil, ErrOrderUpdateFailed
+		case errors.Is(err, ErrOrderStatusInvalid):
+			return nil, ErrOrderStatusInvalid
 		case errors.Is(err, ErrFulfillmentNotAuto):
 			return nil, ErrFulfillmentNotAuto
 		default:

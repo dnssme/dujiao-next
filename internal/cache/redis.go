@@ -132,6 +132,7 @@ func buildRedisTLSConfig(cfg *config.RedisConfig) *tls.Config {
 		return nil
 	}
 	return &tls.Config{
+		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: cfg.TLSSkipVerify,
 	}
 }
