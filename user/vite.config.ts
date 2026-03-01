@@ -14,6 +14,17 @@ const cfAsyncModuleScriptPlugin = () => ({
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), cfAsyncModuleScriptPlugin()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
+          'vendor-i18n': ['vue-i18n'],
+          'vendor-ui': ['@unhead/vue'],
+        },
+      },
+    },
+  },
   server: {
     host: 'localhost', // 仅监听本地回环地址（CIS 安全基线）
     port: 5173,

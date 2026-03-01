@@ -53,7 +53,7 @@
                 <div v-for="(image, index) in images" :key="index" @click="currentImage = image"
                   class="cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 aspect-w-1 aspect-h-1"
                   :class="currentImage === image ? 'theme-thumb-selected opacity-100' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'">
-                  <img :src="image" :alt="`Image ${index + 1}`" class="w-full h-full object-cover" />
+                  <img :src="image" :alt="getLocalizedText(product.title) + ' - ' + (index + 1)" class="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
@@ -593,6 +593,10 @@ const debouncedLoadProduct = debounceAsync(loadProduct, 300)
 
 useHead({
   title: () => product.value ? getLocalizedText(product.value.title) : '',
+  link: () => {
+    if (!product.value) return []
+    return [{ rel: 'canonical', href: window.location.origin + `/products/${product.value.slug}` }]
+  },
   meta: () => {
     if (!product.value) return []
     const seoMeta = product.value.seo_meta || {}
@@ -603,7 +607,7 @@ useHead({
     if (seoMeta.description) tags.push({ name: 'description', content: seoMeta.description })
 
     // Open Graph Tags
-    tags.push({ property: 'og:type', content: 'website' })
+    tags.push({ property: 'og:type', content: 'product' })
     if (product.value.title) {
       tags.push({ property: 'og:title', content: getLocalizedText(product.value.title) })
     }
@@ -613,7 +617,7 @@ useHead({
     if (images.value && images.value.length > 0) {
       tags.push({ property: 'og:image', content: images.value[0] })
     }
-    tags.push({ property: 'og:url', content: window.location.href })
+    tags.push({ property: 'og:url', content: window.location.origin + `/products/${product.value.slug}` })
 
     // Twitter Card Tags
     tags.push({ name: 'twitter:card', content: 'summary_large_image' })
@@ -628,6 +632,32 @@ useHead({
     }
 
     return tags
+  },
+  script: () => {
+    if (!product.value) return []
+    const title = getLocalizedText(product.value.title)
+    const description = getLocalizedText(product.value.description)
+    const jsonLd: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: title,
+      description: description,
+      url: window.location.origin + `/products/${product.value.slug}`,
+    }
+    if (images.value && images.value.length > 0) {
+      jsonLd.image = images.value
+    }
+    if (product.value.price_amount) {
+      jsonLd.offers = {
+        '@type': 'Offer',
+        price: product.value.price_amount,
+        priceCurrency: siteCurrency.value,
+        availability: product.value.stock_status === 'out_of_stock'
+          ? 'https://schema.org/OutOfStock'
+          : 'https://schema.org/InStock',
+      }
+    }
+    return [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) }]
   }
 })
 
