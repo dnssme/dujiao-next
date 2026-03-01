@@ -260,7 +260,7 @@ func (h *Handler) writeAdminPaymentCSVRows(writer *csv.Writer, payments []models
 			payment.CreatedAt.Format(time.RFC3339),
 			formatTimeNullable(payment.PaidAt),
 			formatTimeNullable(payment.ExpiredAt),
-			sanitizeCSVField(payment.ProviderRef),
+			service.SanitizeCSVField(payment.ProviderRef),
 		}); err != nil {
 			return err
 		}
