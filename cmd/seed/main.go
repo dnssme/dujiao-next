@@ -194,7 +194,7 @@ func main() {
 			CategoryID:        accessoriesID,
 			PurchaseType:      constants.ProductPurchaseGuest,
 			FulfillmentType:   constants.FulfillmentTypeManual,
-			ManualStockTotal:  0,
+			ManualStockTotal:  constants.ManualStockUnlimited,
 			ManualStockLocked: 0,
 			ManualStockSold:   0,
 			SortOrder:         910,
