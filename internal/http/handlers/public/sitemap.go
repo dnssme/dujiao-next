@@ -39,8 +39,8 @@ func (h *Handler) GetSitemap(c *gin.Context) {
 		{Loc: baseURL + "/privacy", ChangeFreq: "monthly", Priority: "0.3"},
 	}
 
-	// Add product pages
-	products, _, err := h.ProductService.ListPublic("", "", 1, 500)
+	// Add product pages (fetch up to sitemapMaxItems)
+	products, _, err := h.ProductService.ListPublic("", "", 1, 1000)
 	if err == nil {
 		for _, p := range products {
 			u := sitemapURL{
@@ -55,8 +55,8 @@ func (h *Handler) GetSitemap(c *gin.Context) {
 		}
 	}
 
-	// Add blog/notice pages
-	posts, _, err := h.PostService.ListPublic("", 1, 500)
+	// Add blog/notice pages (fetch up to sitemapMaxItems)
+	posts, _, err := h.PostService.ListPublic("", 1, 1000)
 	if err == nil {
 		for _, p := range posts {
 			u := sitemapURL{

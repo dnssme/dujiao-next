@@ -16,4 +16,4 @@ Disallow: /pay
 Disallow: /guest/
 Disallow: /api/
 
-Sitemap: /api/v1/public/sitemap.xml
+Sitemap: /sitemap.xml
