@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"errors"
+	"runtime/debug"
 	"time"
 
 	"github.com/mzwrt/dujiao-next/internal/config"
@@ -80,7 +81,7 @@ func (s *Service) runAffiliateConfirmLoop(ctx context.Context) {
 	runOnce := func() {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Errorw("worker_affiliate_confirm_panic", "recover", r)
+				logger.Errorw("worker_affiliate_confirm_panic", "recover", r, "stack", string(debug.Stack()))
 			}
 		}()
 		if err := s.consumer.AffiliateService.ConfirmDueCommissions(time.Now()); err != nil {
