@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 	"github.com/mzwrt/dujiao-next/internal/http/response"
 	"github.com/mzwrt/dujiao-next/internal/models"
 	"github.com/mzwrt/dujiao-next/internal/service"
@@ -273,6 +274,10 @@ func (h *Handler) BatchUpdateGiftCardStatus(c *gin.Context) {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
+	if len(req.IDs) > handlershared.MaxBatchSize {
+		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
+		return
+	}
 	affected, err := h.GiftCardService.BatchUpdateStatus(req.IDs, req.Status)
 	if err != nil {
 		switch {
@@ -291,6 +296,15 @@ func (h *Handler) ExportGiftCards(c *gin.Context) {
 	var req ExportGiftCardRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
+		return
+	}
+	if len(req.IDs) > handlershared.MaxBatchSize {
+		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
+		return
+	}
+	normalizedFormat := strings.ToLower(strings.TrimSpace(req.Format))
+	if normalizedFormat != "csv" && normalizedFormat != "json" && normalizedFormat != "txt" {
+		respondError(c, response.CodeBadRequest, "error.gift_card_invalid", nil)
 		return
 	}
 	content, contentType, err := h.GiftCardService.ExportGiftCards(req.IDs, req.Format)

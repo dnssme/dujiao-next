@@ -492,7 +492,7 @@ func (h *Handler) PreviewGuestOrder(c *gin.Context) {
 // ListGuestOrders 获取游客订单列表
 func (h *Handler) ListGuestOrders(c *gin.Context) {
 	email := strings.TrimSpace(c.Query("email"))
-	password := strings.TrimSpace(c.Query("order_password"))
+	password := resolveGuestOrderPassword(c)
 	orderNo := strings.TrimSpace(c.Query("order_no"))
 	if email == "" {
 		respondError(c, response.CodeBadRequest, "error.guest_email_required", nil)
@@ -545,7 +545,7 @@ func (h *Handler) ListGuestOrders(c *gin.Context) {
 // GetGuestOrder 获取游客订单详情
 func (h *Handler) GetGuestOrder(c *gin.Context) {
 	email := strings.TrimSpace(c.Query("email"))
-	password := strings.TrimSpace(c.Query("order_password"))
+	password := resolveGuestOrderPassword(c)
 	if email == "" {
 		respondError(c, response.CodeBadRequest, "error.guest_email_required", nil)
 		return
@@ -574,7 +574,7 @@ func (h *Handler) GetGuestOrder(c *gin.Context) {
 // GetGuestOrderByOrderNo 按订单号获取游客订单详情
 func (h *Handler) GetGuestOrderByOrderNo(c *gin.Context) {
 	email := strings.TrimSpace(c.Query("email"))
-	password := strings.TrimSpace(c.Query("order_password"))
+	password := resolveGuestOrderPassword(c)
 	if email == "" {
 		respondError(c, response.CodeBadRequest, "error.guest_email_required", nil)
 		return
@@ -610,7 +610,7 @@ type CreateGuestPaymentRequest struct {
 
 type LatestGuestPaymentQuery struct {
 	Email         string `form:"email" binding:"required"`
-	OrderPassword string `form:"order_password" binding:"required"`
+	OrderPassword string `form:"order_password"`
 	OrderID       uint   `form:"order_id" binding:"required"`
 }
 
@@ -736,7 +736,7 @@ func (h *Handler) GetGuestLatestPayment(c *gin.Context) {
 		return
 	}
 	email := strings.TrimSpace(query.Email)
-	password := strings.TrimSpace(query.OrderPassword)
+	password := resolveGuestOrderPassword(c)
 	if email == "" {
 		respondError(c, response.CodeBadRequest, "error.guest_email_required", nil)
 		return
@@ -789,4 +789,14 @@ func (h *Handler) GetGuestLatestPayment(c *gin.Context) {
 		"qr_code":          payment.QRCode,
 		"expires_at":       payment.ExpiredAt,
 	})
+}
+
+// resolveGuestOrderPassword 优先从 X-Order-Password 请求头读取游客订单密码，
+// 避免密码出现在 URL 查询字符串中（PCI-DSS 8.2.1）。
+// 若请求头为空则回退到查询参数以保持向后兼容。
+func resolveGuestOrderPassword(c *gin.Context) string {
+	if pw := strings.TrimSpace(c.GetHeader("X-Order-Password")); pw != "" {
+		return pw
+	}
+	return strings.TrimSpace(c.Query("order_password"))
 }

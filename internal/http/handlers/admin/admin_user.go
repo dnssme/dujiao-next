@@ -8,6 +8,7 @@ import (
 
 	"github.com/mzwrt/dujiao-next/internal/cache"
 	"github.com/mzwrt/dujiao-next/internal/constants"
+	handlershared "github.com/mzwrt/dujiao-next/internal/http/handlers/shared"
 	"github.com/mzwrt/dujiao-next/internal/http/response"
 	"github.com/mzwrt/dujiao-next/internal/models"
 	"github.com/mzwrt/dujiao-next/internal/repository"
@@ -402,7 +403,7 @@ func (h *Handler) BatchUpdateUserStatus(c *gin.Context) {
 		respondError(c, response.CodeBadRequest, "error.bad_request", err)
 		return
 	}
-	if len(req.UserIDs) == 0 {
+	if len(req.UserIDs) == 0 || len(req.UserIDs) > handlershared.MaxBatchSize {
 		respondError(c, response.CodeBadRequest, "error.bad_request", nil)
 		return
 	}
