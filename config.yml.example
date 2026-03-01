@@ -117,13 +117,13 @@ security:
 email:
   enabled: true
   host: smtp.xxx.com
-  port: 465
+  port: 587
   username: your-username
   password: your-password  # ⚠️ 生产环境建议通过环境变量注入，不要明文写入配置文件
   from: your-email
   from_name: your-name
-  use_tls: true       # PCI-DSS 4.1 — 使用 STARTTLS 加密传输
-  use_ssl: false
+  use_tls: true       # PCI-DSS 4.1 — 端口 587 使用 STARTTLS 加密传输（推荐）
+  use_ssl: false       # 端口 465 使用隐式 SSL；两者不可同时启用
   verify_code:
     expire_minutes: 10
     send_interval_seconds: 60
