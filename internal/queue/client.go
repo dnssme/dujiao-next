@@ -162,6 +162,7 @@ func buildRedisOpt(cfg *config.QueueConfig) asynq.RedisClientOpt {
 		// PCI-DSS 4.1 — 当 tls_enabled 为 true 时对队列 Redis 连接启用 TLS 加密传输。
 		if cfg.TLSEnabled {
 			tlsCfg = &tls.Config{
+				MinVersion:         tls.VersionTLS12,
 				InsecureSkipVerify: cfg.TLSSkipVerify,
 			}
 		}

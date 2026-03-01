@@ -15,7 +15,7 @@ const cfAsyncModuleScriptPlugin = () => ({
 export default defineConfig({
   plugins: [vue(), cfAsyncModuleScriptPlugin()],
   server: {
-    host: '0.0.0.0', // 监听所有网络接口
+    host: 'localhost', // 仅监听本地回环地址（CIS 安全基线）
     port: 5173,
     strictPort: true,
     proxy: {
