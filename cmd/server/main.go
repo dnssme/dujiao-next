@@ -40,6 +40,13 @@ func main() {
 		if isWeakSecret(cfg.UserJWT.SecretKey) {
 			stdLog.Fatalf("User JWT secret (user_jwt.secret) 过弱或仍为默认值，请在生产环境中配置强随机密钥")
 		}
+		// PCI-DSS 4.1 — release 模式下 TLS 证书验证不应被跳过
+		if cfg.Redis.TLSEnabled && cfg.Redis.TLSSkipVerify {
+			stdLog.Printf("警告: Redis TLS 已启用但证书验证被跳过 (redis.tls_skip_verify=true)，生产环境应使用有效证书")
+		}
+		if cfg.Queue.TLSEnabled && cfg.Queue.TLSSkipVerify {
+			stdLog.Printf("警告: Queue TLS 已启用但证书验证被跳过 (queue.tls_skip_verify=true)，生产环境应使用有效证书")
+		}
 	} else {
 		if isWeakSecret(cfg.JWT.SecretKey) {
 			stdLog.Printf("警告: JWT secret (jwt.secret) 过弱或仍为默认值，建议在生产环境中更换")
