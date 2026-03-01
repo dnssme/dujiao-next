@@ -78,6 +78,11 @@ func (s *Service) runAffiliateConfirmLoop(ctx context.Context) {
 		return
 	}
 	runOnce := func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Errorw("worker_affiliate_confirm_panic", "recover", r)
+			}
+		}()
 		if err := s.consumer.AffiliateService.ConfirmDueCommissions(time.Now()); err != nil {
 			logger.Warnw("worker_affiliate_confirm_due_failed", "error", err)
 		}
