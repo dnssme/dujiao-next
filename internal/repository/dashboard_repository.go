@@ -396,10 +396,16 @@ func (r *GormDashboardRepository) GetStockStats(lowStockThreshold int64) (Dashbo
 	return result, nil
 }
 
+// maxDashboardRankingLimit 仪表盘排行榜上限（PCI-DSS 6.5.6 — 防止资源耗尽）。
+const maxDashboardRankingLimit = 50
+
 // GetTopProducts 获取商品排行榜
 func (r *GormDashboardRepository) GetTopProducts(startAt, endAt time.Time, limit int) ([]DashboardProductRankingRow, error) {
 	if limit <= 0 {
 		limit = 5
+	}
+	if limit > maxDashboardRankingLimit {
+		limit = maxDashboardRankingLimit
 	}
 	rows := make([]DashboardProductRankingRow, 0)
 	titleExpr := localizedJSONCoalesceExpr(r.db, "order_items.title_json")
@@ -426,6 +432,9 @@ func (r *GormDashboardRepository) GetTopProducts(startAt, endAt time.Time, limit
 func (r *GormDashboardRepository) GetTopChannels(startAt, endAt time.Time, limit int) ([]DashboardChannelRankingRow, error) {
 	if limit <= 0 {
 		limit = 5
+	}
+	if limit > maxDashboardRankingLimit {
+		limit = maxDashboardRankingLimit
 	}
 	rows := make([]DashboardChannelRankingRow, 0)
 	if err := r.db.Model(&models.Payment{}).

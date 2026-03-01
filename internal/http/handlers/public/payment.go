@@ -198,5 +198,5 @@ func respondPaymentCreateError(c *gin.Context, err error) {
 }
 
 func respondPaymentCaptureError(c *gin.Context, err error) {
-	respondWithMappedError(c, err, paymentCaptureErrorRules, response.CodeInternal, "error.payment_callback_failed")
+	respondWithMappedError(c, err, paymentCaptureErrorRules, response.CodeInternal, "error.payment_capture_failed")
 }

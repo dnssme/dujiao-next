@@ -292,7 +292,7 @@ func (s *CardSecretService) ExportCardSecrets(ids []uint, format string) ([]byte
 		}
 		row := []string{
 			strconv.FormatUint(uint64(item.ID), 10),
-			item.Secret,
+			SanitizeCSVField(item.Secret),
 			item.Status,
 			strconv.FormatUint(uint64(item.ProductID), 10),
 			strconv.FormatUint(uint64(item.SKUID), 10),

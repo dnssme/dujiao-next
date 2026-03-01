@@ -70,7 +70,9 @@ func (s *TelegramNotifyService) SendMessage(ctx context.Context, chatID, message
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrNotificationSendFailed, err)
+		// PCI-DSS 3.4 — Go http 错误信息包含完整 URL（含 bot token），
+		// 仅返回通用错误避免敏感凭证泄露到调用方日志。
+		return fmt.Errorf("%w: telegram api request failed", ErrNotificationSendFailed)
 	}
 	defer resp.Body.Close()
 
