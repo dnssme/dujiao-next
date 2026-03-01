@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -110,7 +111,9 @@ func applySQLitePragmas(db *gorm.DB) {
 		"PRAGMA foreign_keys=ON",
 	}
 	for _, p := range pragmas {
-		db.Exec(p)
+		if err := db.Exec(p).Error; err != nil {
+			log.Printf("[WARN] sqlite pragma failed: %s — %v", p, err)
+		}
 	}
 }
 
