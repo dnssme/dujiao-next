@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -208,7 +209,7 @@ func (s *CaptchaService) verifyTurnstile(cfg CaptchaTurnstileSetting, token, cli
 	defer resp.Body.Close()
 
 	var result turnstileVerifyResponse
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&result); decodeErr != nil {
+	if decodeErr := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&result); decodeErr != nil {
 		return fmt.Errorf("%w: %v", ErrCaptchaVerifyFailed, decodeErr)
 	}
 	if !result.Success {

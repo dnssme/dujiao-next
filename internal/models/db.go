@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -39,10 +40,12 @@ func InitDBWithMode(driver, dsn string, pool DBPoolConfig, mode string) error {
 	var err error
 	normalized := strings.ToLower(strings.TrimSpace(driver))
 	var dialector gorm.Dialector
+	isSQLite := false
 	switch normalized {
 	case "", "sqlite":
 		// glebarez/sqlite 是基于 modernc.org/sqlite 的纯 Go 驱动
 		dialector = sqlite.Open(dsn)
+		isSQLite = true
 	case "postgres", "postgresql":
 		dialector = postgres.Open(dsn)
 	default:
@@ -64,6 +67,10 @@ func InitDBWithMode(driver, dsn string, pool DBPoolConfig, mode string) error {
 		return err
 	}
 	applyDBPool(sqlDB, pool)
+
+	if isSQLite {
+		applySQLitePragmas(DB)
+	}
 	return nil
 }
 
@@ -82,6 +89,31 @@ func applyDBPool(sqlDB *sql.DB, pool DBPoolConfig) {
 	}
 	if pool.ConnMaxIdleTimeSeconds > 0 {
 		sqlDB.SetConnMaxIdleTime(time.Duration(pool.ConnMaxIdleTimeSeconds) * time.Second)
+	}
+}
+
+// applySQLitePragmas 设置 SQLite 性能优化 PRAGMA。
+// - WAL 日志模式允许读写并发，显著提升多连接场景下的吞吐量。
+// - synchronous=NORMAL 在 WAL 模式下已足够安全，且减少 fsync 调用。
+// - cache_size 增大到 ~32MB 减少磁盘 I/O。
+// - busy_timeout 避免 SQLITE_BUSY 立即返回，改为等待重试。
+// - temp_store=MEMORY 将临时表放在内存中加速排序/聚合。
+func applySQLitePragmas(db *gorm.DB) {
+	if db == nil {
+		return
+	}
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA cache_size=-32000",
+		"PRAGMA busy_timeout=5000",
+		"PRAGMA temp_store=MEMORY",
+		"PRAGMA foreign_keys=ON",
+	}
+	for _, p := range pragmas {
+		if err := db.Exec(p).Error; err != nil {
+			log.Printf("[WARN] sqlite pragma failed: %s — %v", p, err)
+		}
 	}
 }
 
